@@ -1,0 +1,31 @@
+[package]
+name = "quanta"
+version = "0.1.0"
+authors = ["Toby Lawrence <tlawrence@nuclearfurnace.com>"]
+edition = "2018"
+
+license = "MIT"
+
+description  = "high-speed timing facility"
+
+homepage = "https://github.com/nuclearfurnace/quanta"
+repository = "https://github.com/nuclearfurnace/quanta"
+documentation = "https://docs.rs/quanta"
+
+readme = "README.md"
+
+keywords = ["rdtsc", "timing", "nanosecond"]
+
+[features]
+asm = ["tsc"]
+tsc = []
+
+[dependencies]
+libc = "0.2.46"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3.6", features = ["profileapi", "sysinfoapi"] }
+
+[dev-dependencies.clocksource]
+version = "^0.4"
+features = ["rdtsc"]

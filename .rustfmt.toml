@@ -1,0 +1,17 @@
+edition = "2018"
+max_width = 120
+wrap_comments = true
+comment_width = 120
+use_try_shorthand = true
+merge_imports = true
+reorder_imports = true
+reorder_modules = true
+fn_args_density = "Compressed"
+fn_single_line = true
+imports_indent = "Block"
+match_block_trailing_comma = true
+merge_derives = true
+force_multiline_blocks = true
+normalize_comments = true
+reorder_impl_items = true
+use_field_init_shorthand = true
