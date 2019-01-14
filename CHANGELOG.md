@@ -8,4 +8,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2019-01-14
 ### Added
-- Initial commit.  (by [@tobz](https://github.com/tobz), [#1](https://github.com/nuclearfurnace/hotmic/pull/1))
+- Initial commit.

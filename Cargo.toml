@@ -28,4 +28,4 @@ winapi = { version = "0.3.6", features = ["profileapi", "sysinfoapi"] }
 
 [dev-dependencies.clocksource]
 version = "^0.4"
-features = ["rdtsc"]
+features = []
