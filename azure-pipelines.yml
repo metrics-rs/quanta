@@ -1,0 +1,12 @@
+trigger: ["master"]
+pr: ["master"]
+
+jobs:
+# Check the crate formatting.
+- template: ci/azure-rustfmt.yml
+
+# Actaully test the crate.
+- template: ci/azure-test-stable.yml
+
+# Now test it against nightly w/ ASM support.
+- template: ci/azure-test-nightly.yml
