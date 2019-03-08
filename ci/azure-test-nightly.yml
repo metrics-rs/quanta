@@ -18,3 +18,8 @@ jobs:
       rust_version: nightly
   - script: cargo test --features asm
     displayName: cargo test --features asm
+  - script: cargo bench
+    displayName: cargo bench
+  - script: cargo bench --features asm
+    displayName: cargo bench --features asm
+

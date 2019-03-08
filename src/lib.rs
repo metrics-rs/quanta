@@ -205,15 +205,6 @@ impl Clock {
     ///
     /// Returns a [`Clock`] instance and a handle to the underlying [`Mock`] source so that the
     /// caller can control the passage of time.
-    ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let (clock, mock) = Clock::mock();
-    /// assert_eq!(clock.now(), 0);
-    /// mock.increment(42);
-    /// assert_eq!(clock.now(), 42);
-    /// ```
     pub fn mock() -> (Clock, Arc<Mock>) {
         let mock = Arc::new(Mock::new(0));
         let clock = Clock {
@@ -226,15 +217,6 @@ impl Clock {
     /// Gets the current time, scaled to reference time.
     ///
     /// Value is in nanoseconds.
-    ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// assert!(clock.now() > 0);
-    /// ```
-    ///
-    /// [`raw`]: Clock::raw
     pub fn now(&self) -> u64 {
         match &self.inner {
             ClockType::Optimized(_, source, _) => self.scaled(source.now()),
@@ -249,13 +231,6 @@ impl Clock {
     /// It requires conversion to reference time, however, via [`scaled`] or [`delta`].
     ///
     /// If you need maximum accuracy in your measurements, consider using [`start`] and [`end`].
-    ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// assert!(clock.raw() > 0);
-    /// ```
     ///
     /// [`scaled`]: Clock::scaled
     /// [`delta`]: Clock::delta
@@ -278,13 +253,6 @@ impl Clock {
     /// could be reordered to come after the measurement, thereby skewing the overall time
     /// measured.
     ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// assert!(clock.start() > 0);
-    /// ```
-    ///
     /// [`raw`]: Clock::raw
     pub fn start(&self) -> u64 {
         match &self.inner {
@@ -303,13 +271,6 @@ impl Clock {
     /// could be reordered to come before the measurement, thereby skewing the overall time
     /// measured.
     ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// assert!(clock.end() > 0);
-    /// ```
-    ///
     /// [`raw`]: Clock::raw
     pub fn end(&self) -> u64 {
         match &self.inner {
@@ -325,14 +286,6 @@ impl Clock {
     /// scaling raw measurements if you don't need actual nanoseconds.
     ///
     /// Value is in nanoseconds.
-    ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// let raw = clock.raw();
-    /// assert!(clock.scaled(raw) > 0);
-    /// ```
     pub fn scaled(&self, value: u64) -> u64 {
         match &self.inner {
             ClockType::Optimized(_, _, calibration) => {
@@ -353,22 +306,6 @@ impl Clock {
     /// This method is slightly faster when you know you need the delta between two raw
     /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
     ///
-    ///
-    /// # Examples
-    /// ```
-    /// # use quanta::Clock;
-    /// let clock = Clock::new();
-    /// let t0 = clock.raw();
-    /// let t1 = clock.raw();
-    /// assert!(t1 > t0);
-    /// assert!(clock.delta(t0, t1) > 0);
-    ///
-    /// let start = clock.start();
-    /// let end = clock.end();
-    /// assert!(end > start);
-    /// assert!(clock.delta(start, end) > 0);
-    /// ```
-    ///
     /// [`scaled`]: Clock::scaled
     pub fn delta(&self, start: u64, end: u64) -> u64 {
         let raw_delta = end.wrapping_sub(start);
@@ -382,5 +319,49 @@ impl Clock {
 impl Default for Clock {
     fn default() -> Clock {
         Clock::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Clock;
+
+    #[test]
+    fn test_mock() {
+        let (clock, mock) = Clock::mock();
+        assert_eq!(clock.now(), 0);
+        mock.increment(42);
+        assert_eq!(clock.now(), 42);
+    }
+
+    #[test]
+    fn test_now() {
+        let clock = Clock::new();
+        assert!(clock.now() > 0);
+    }
+
+    #[test]
+    fn test_raw() {
+        let clock = Clock::new();
+        assert!(clock.raw() > 0);
+    }
+
+    #[test]
+    fn test_start() {
+        let clock = Clock::new();
+        assert!(clock.start() > 0);
+    }
+
+    #[test]
+    fn test_end() {
+        let clock = Clock::new();
+        assert!(clock.end() > 0);
+    }
+
+    #[test]
+    fn test_scaled() {
+        let clock = Clock::new();
+        let raw = clock.raw();
+        assert!(clock.scaled(raw) > 0);
     }
 }
