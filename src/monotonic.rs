@@ -45,7 +45,7 @@ impl Monotonic {
         use winapi::um::winnt::LARGE_INTEGER;
 
         let numer = unsafe {
-            let mut freq = mem::uninitialized();
+            let mut freq = mem::zeroed();
             debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
             let res = profileapi::QueryPerformanceFrequency(&mut freq);
             debug_assert_ne!(res, 0, "failed to query performance frequency: {}", res);
@@ -65,7 +65,7 @@ impl ClockSource for Monotonic {
         use winapi::um::winnt::LARGE_INTEGER;
 
         let raw = unsafe {
-            let mut count = mem::uninitialized();
+            let mut count = mem::zeroed();
             debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
             let res = profileapi::QueryPerformanceCounter(&mut count);
             debug_assert_ne!(res, 0, "failed to query performance counter: {}", res);
