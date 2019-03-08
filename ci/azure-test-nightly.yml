@@ -16,5 +16,5 @@ jobs:
   - template: azure-install-rust.yml
     parameters:
       rust_version: nightly
-  - script: cargo test
-      displayName: cargo test --features asm
+  - script: cargo test --features asm
+    displayName: cargo test --features asm
