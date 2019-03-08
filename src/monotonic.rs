@@ -69,7 +69,7 @@ impl ClockSource for Monotonic {
             debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
             let res = profileapi::QueryPerformanceCounter(&mut count);
             debug_assert_ne!(res, 0, "failed to query performance counter: {}", res);
-            *lint.QuadPart() as u64
+            *count.QuadPart() as u64
         };
         (raw * self.numer) / self.denom
     }
