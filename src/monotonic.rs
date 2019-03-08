@@ -44,11 +44,13 @@ impl Monotonic {
         use winapi::um::profileapi;
         use winapi::um::winnt::LARGE_INTEGER;
 
-        let mut freq = mem::uninitialized();
-        debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
-        let res = profileapi::QueryPerformanceFrequency(&mut freq);
-        debug_assert_ne!(res, 0, "Failed to query performance frequency, {}", res);
-        let numer = *freq.QuadPart() as u64;
+        let numer = unsafe {
+            let mut freq = mem::uninitialized();
+            debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
+            let res = profileapi::QueryPerformanceFrequency(&mut freq);
+            debug_assert_ne!(res, 0, "failed to query performance frequency: {}", res);
+            *freq.QuadPart() as u64
+        };
         let denom = 1_000_000_000;
 
         Monotonic { numer, denom }
@@ -62,11 +64,13 @@ impl ClockSource for Monotonic {
         use winapi::um::profileapi;
         use winapi::um::winnt::LARGE_INTEGER;
 
-        let mut lint = mem::uninitialized();
-        debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
-        let res = profileapi::QueryPerformanceCounter(&mut lint);
-        debug_assert_ne!(res, 0, "Failed to query performance counter {}", res);
-        let raw = *lint.QuadPart() as u64;
+        let raw = unsafe {
+            let mut count = mem::uninitialized();
+            debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
+            let res = profileapi::QueryPerformanceCounter(&mut count);
+            debug_assert_ne!(res, 0, "failed to query performance counter: {}", res);
+            *lint.QuadPart() as u64
+        };
         (raw * self.numer) / self.denom
     }
 
