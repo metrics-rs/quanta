@@ -36,6 +36,7 @@ impl Monotonic {
     pub fn new() -> Monotonic {
         use std::mem;
         use winapi::um::profileapi;
+        use winapi::um::winnt::LARGE_INTEGER;
 
         let mut freq = mem::uninitialized();
         debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
@@ -53,6 +54,7 @@ impl ClockSource for Monotonic {
     fn now(&self) -> u64 {
         use std::mem;
         use winapi::um::profileapi;
+        use winapi::um::winnt::LARGE_INTEGER;
 
         let mut lint = mem::uninitialized();
         debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
