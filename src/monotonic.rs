@@ -34,6 +34,9 @@ impl ClockSource for Monotonic {
 #[cfg(target_os = "windows")]
 impl Monotonic {
     pub fn new() -> Monotonic {
+        use std::mem;
+        use winapi::um::profileapi;
+
         let mut freq = mem::uninitialized();
         debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
         let res = profileapi::QueryPerformanceFrequency(&mut freq);
@@ -48,6 +51,9 @@ impl Monotonic {
 #[cfg(target_os = "windows")]
 impl ClockSource for Monotonic {
     fn now(&self) -> u64 {
+        use std::mem;
+        use winapi::um::profileapi;
+
         let mut lint = mem::uninitialized();
         debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
         let res = profileapi::QueryPerformanceCounter(&mut lint);
