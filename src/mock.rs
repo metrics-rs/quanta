@@ -19,16 +19,26 @@ impl Mock {
     }
 
     /// Increments the time by the given amount.
-    pub fn increment(&self, amount: usize) { self.offset.fetch_add(amount, Ordering::Release); }
+    pub fn increment(&self, amount: usize) {
+        self.offset.fetch_add(amount, Ordering::Release);
+    }
 
     /// Decrements the time by the given amount.
-    pub fn decrement(&self, amount: usize) { self.offset.fetch_sub(amount, Ordering::Release); }
+    pub fn decrement(&self, amount: usize) {
+        self.offset.fetch_sub(amount, Ordering::Release);
+    }
 }
 
 impl ClockSource for Mock {
-    fn now(&self) -> u64 { self.offset.load(Ordering::Acquire) as u64 }
+    fn now(&self) -> u64 {
+        self.offset.load(Ordering::Acquire) as u64
+    }
 
-    fn start(&self) -> u64 { self.now() }
+    fn start(&self) -> u64 {
+        self.now()
+    }
 
-    fn end(&self) -> u64 { self.now() }
+    fn end(&self) -> u64 {
+        self.now()
+    }
 }
