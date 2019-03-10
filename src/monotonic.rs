@@ -7,8 +7,7 @@ pub struct Monotonic;
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 #[derive(Clone)]
 pub struct Monotonic {
-    numer: u64,
-    denom: u64,
+    factor: u64,
 }
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows")))]
@@ -42,18 +41,18 @@ impl Monotonic {
     pub fn new() -> Monotonic {
         use std::mem;
         use winapi::um::profileapi;
-        use winapi::um::winnt::LARGE_INTEGER;
 
-        let numer = unsafe {
+        let denom = unsafe {
             let mut freq = mem::zeroed();
-            debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
-            let res = profileapi::QueryPerformanceFrequency(&mut freq);
-            debug_assert_ne!(res, 0, "failed to query performance frequency: {}", res);
+            if profileapi::QueryPerformanceFrequency(&mut freq) == 0 {
+                unreachable!("QueryPerformanceFrequency on Windows XP or later should never return zero!");
+            }
             *freq.QuadPart() as u64
         };
-        let denom = 1_000_000_000;
 
-        Monotonic { numer, denom }
+        Monotonic {
+            factor: 1_000_000_000 / denom,
+        }
     }
 }
 
@@ -62,16 +61,15 @@ impl ClockSource for Monotonic {
     fn now(&self) -> u64 {
         use std::mem;
         use winapi::um::profileapi;
-        use winapi::um::winnt::LARGE_INTEGER;
 
         let raw = unsafe {
             let mut count = mem::zeroed();
-            debug_assert_eq!(mem::align_of::<LARGE_INTEGER>(), 8);
-            let res = profileapi::QueryPerformanceCounter(&mut count);
-            debug_assert_ne!(res, 0, "failed to query performance counter: {}", res);
+            if profileapi::QueryPerformanceCounter(&mut count) == 0 {
+                unreachable!("QueryPerformanceCounter on Windows XP or later should never return zero!");
+            }
             *count.QuadPart() as u64
         };
-        (raw * self.numer) / self.denom
+        raw * self.factor
     }
 
     fn start(&self) -> u64 {
@@ -91,10 +89,8 @@ impl Monotonic {
             libc::mach_timebase_info(&mut info);
         }
 
-        Monotonic {
-            numer: u64::from(info.numer),
-            denom: u64::from(info.denom),
-        }
+        let factor = u64::from(info.numer) / u64::from(info.denom);
+        Monotonic { factor }
     }
 }
 
@@ -102,7 +98,7 @@ impl Monotonic {
 impl ClockSource for Monotonic {
     fn now(&self) -> u64 {
         let raw = unsafe { libc::mach_absolute_time() };
-        (raw * self.numer) / self.denom
+        raw * self.factor
     }
 
     fn start(&self) -> u64 {
