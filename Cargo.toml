@@ -1,6 +1,6 @@
 [package]
 name = "quanta"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Toby Lawrence <tlawrence@nuclearfurnace.com>"]
 edition = "2018"
 
@@ -21,10 +21,10 @@ asm = ["tsc"]
 tsc = []
 
 [dependencies]
-libc = "0.2.46"
+libc = "0.2.50"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3.6", features = ["profileapi", "sysinfoapi"] }
+winapi = { version = "0.3.6", features = ["profileapi"] }
 
 [dev-dependencies.clocksource]
 version = "^0.4"
