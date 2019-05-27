@@ -164,9 +164,7 @@ impl Calibration {
 }
 
 impl Default for Calibration {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 /// Unified clock for taking measurements.
@@ -302,7 +300,7 @@ impl Clock {
                 } else {
                     (((value as f64 - calibration.src_time) * calibration.hz_ratio) + calibration.ref_time) as u64
                 }
-            }
+            },
             ClockType::Mock(_) => value,
         }
     }
@@ -351,15 +349,11 @@ impl Clock {
     }
 
     /// Updates the recent current time.
-    pub(crate) fn upkeep(value: u64) {
-        GLOBAL_RECENT.store(value, Ordering::Release);
-    }
+    pub(crate) fn upkeep(value: u64) { GLOBAL_RECENT.store(value, Ordering::Release); }
 }
 
 impl Default for Clock {
-    fn default() -> Clock {
-        Clock::new()
-    }
+    fn default() -> Clock { Clock::new() }
 }
 
 #[cfg(test)]
