@@ -1,12 +1,12 @@
 [package]
 name = "quanta"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Toby Lawrence <tlawrence@nuclearfurnace.com>"]
 edition = "2018"
 
 license = "MIT"
 
-description  = "high-speed timing facility"
+description = "high-speed timing facility"
 
 homepage = "https://github.com/nuclearfurnace/quanta"
 repository = "https://github.com/nuclearfurnace/quanta"
