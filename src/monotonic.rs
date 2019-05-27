@@ -12,7 +12,9 @@ pub struct Monotonic {
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows")))]
 impl Monotonic {
-    pub fn new() -> Monotonic { Monotonic {} }
+    pub fn new() -> Monotonic {
+        Monotonic {}
+    }
 }
 
 #[cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows")))]
@@ -25,9 +27,13 @@ impl ClockSource for Monotonic {
         (ts.tv_sec as u64) * 1_000_000_000 + (ts.tv_nsec as u64)
     }
 
-    fn start(&self) -> u64 { self.now() }
+    fn start(&self) -> u64 {
+        self.now()
+    }
 
-    fn end(&self) -> u64 { self.now() }
+    fn end(&self) -> u64 {
+        self.now()
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -66,9 +72,13 @@ impl ClockSource for Monotonic {
         raw * self.factor
     }
 
-    fn start(&self) -> u64 { self.now() }
+    fn start(&self) -> u64 {
+        self.now()
+    }
 
-    fn end(&self) -> u64 { self.now() }
+    fn end(&self) -> u64 {
+        self.now()
+    }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -91,11 +101,17 @@ impl ClockSource for Monotonic {
         raw * self.factor
     }
 
-    fn start(&self) -> u64 { self.now() }
+    fn start(&self) -> u64 {
+        self.now()
+    }
 
-    fn end(&self) -> u64 { self.now() }
+    fn end(&self) -> u64 {
+        self.now()
+    }
 }
 
 impl Default for Monotonic {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

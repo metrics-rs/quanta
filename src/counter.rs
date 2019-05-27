@@ -5,7 +5,9 @@ pub struct Counter;
 
 impl Counter {
     #[allow(dead_code)]
-    pub fn new() -> Self { Counter {} }
+    pub fn new() -> Self {
+        Counter {}
+    }
 }
 
 #[cfg(feature = "tsc")]
