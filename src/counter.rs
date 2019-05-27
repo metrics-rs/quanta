@@ -1,13 +1,11 @@
 use crate::ClockSource;
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Counter;
 
 impl Counter {
     #[allow(dead_code)]
-    pub fn new() -> Self {
-        Counter {}
-    }
+    pub fn new() -> Self { Counter {} }
 }
 
 #[cfg(feature = "tsc")]

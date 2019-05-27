@@ -46,7 +46,11 @@
 //! [#29722]: https://github.com/rust-lang/rust/issues/29722
 //! [tsc_support]: http://oliveryang.net/2015/09/pitfalls-of-TSC-usage/
 #![cfg_attr(feature = "tsc", feature(asm))]
-use std::sync::Arc;
+
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 mod monotonic;
 use self::monotonic::Monotonic;
@@ -54,7 +58,11 @@ mod counter;
 #[allow(unused_imports)]
 use self::counter::Counter;
 mod mock;
-pub use self::mock::Mock;
+pub use self::mock::{IntoNanoseconds, Mock};
+mod upkeep;
+pub use self::upkeep::{Builder, Handle};
+
+static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
 
 type Reference = Monotonic;
 
@@ -63,7 +71,7 @@ type Source = Counter;
 #[cfg(not(feature = "tsc"))]
 type Source = Monotonic;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum ClockType {
     Optimized(Reference, Source, Calibration),
     Mock(Arc<Mock>),
@@ -98,7 +106,7 @@ trait ClockSource {
     fn end(&self) -> u64;
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct Calibration {
     identical: bool,
     ref_time: f64,
@@ -156,13 +164,11 @@ impl Calibration {
 }
 
 impl Default for Calibration {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 /// Unified clock for taking measurements.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Clock {
     inner: ClockType,
 }
@@ -206,7 +212,7 @@ impl Clock {
     /// Returns a [`Clock`] instance and a handle to the underlying [`Mock`] source so that the
     /// caller can control the passage of time.
     pub fn mock() -> (Clock, Arc<Mock>) {
-        let mock = Arc::new(Mock::new(0));
+        let mock = Arc::new(Mock::new());
         let clock = Clock {
             inner: ClockType::Mock(mock.clone()),
         };
@@ -294,7 +300,7 @@ impl Clock {
                 } else {
                     (((value as f64 - calibration.src_time) * calibration.hz_ratio) + calibration.ref_time) as u64
                 }
-            }
+            },
             ClockType::Mock(_) => value,
         }
     }
@@ -314,12 +320,40 @@ impl Clock {
             ClockType::Mock(_) => raw_delta,
         }
     }
+
+    /// Gets the most recent current time, scaled to reference time.
+    ///
+    /// This method provides ultra-low-overhead access to a slightly-delayed version of the current
+    /// time.  Instead of querying the underlying source clock directly, an external task -- the
+    /// upkeep thread -- is responsible for polling the time and updating a global reference to the
+    /// "recent" time, which this method then loads.
+    ///
+    /// This method is usually at least 2x faster than querying the clock directly, and could be
+    /// even faster in cases where getting the time goes through a heavy virtualized interface, or
+    /// requires syscalls.
+    ///
+    /// The resolution of the time is still in nanoseconds, although the accuracy can only be as
+    /// high as the interval at which the upkeep thread updates the global recent time.
+    ///
+    /// For example, the upkeep thread could be configured to update the time every millisecond,
+    /// which would provide a measurement that should be, at most, 1ms behind the actual time.
+    ///
+    /// If the upkeep thread has not been started, the return value will be `0`.
+    ///
+    /// Value is in nanoseconds.
+    pub fn recent(&self) -> u64 {
+        match &self.inner {
+            ClockType::Optimized(_, _, _) => GLOBAL_RECENT.load(Ordering::Acquire),
+            ClockType::Mock(mock) => mock.now(),
+        }
+    }
+
+    /// Updates the recent current time.
+    pub(crate) fn upkeep(value: u64) { GLOBAL_RECENT.store(value, Ordering::Release); }
 }
 
 impl Default for Clock {
-    fn default() -> Clock {
-        Clock::new()
-    }
+    fn default() -> Clock { Clock::new() }
 }
 
 #[cfg(test)]
