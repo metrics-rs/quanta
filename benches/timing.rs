@@ -74,7 +74,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_now(b: &mut Bencher) {
+    fn time_quanta_now(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -84,7 +84,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_now_delta(b: &mut Bencher) {
+    fn time_quanta_now_delta(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -96,7 +96,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_start(b: &mut Bencher) {
+    fn time_quanta_start(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -106,7 +106,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_end(b: &mut Bencher) {
+    fn time_quanta_end(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -116,7 +116,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_start_end_delta(b: &mut Bencher) {
+    fn time_quanta_start_end_delta(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -128,7 +128,7 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_raw(b: &mut Bencher) {
+    fn time_quanta_raw(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
@@ -138,13 +138,23 @@ mod bench {
     }
 
     #[bench]
-    fn time_hotmic_raw_delta(b: &mut Bencher) {
+    fn time_quanta_raw_delta(b: &mut Bencher) {
         let cs: Clock = Clock::new();
         b.iter(|| {
             for _ in 0..1000 {
                 let start = cs.raw();
                 let end = cs.raw();
                 test::black_box(cs.delta(start, end));
+            }
+        });
+    }
+
+    #[bench]
+    fn time_quanta_recent(b: &mut Bencher) {
+        let cs: Clock = Clock::new();
+        b.iter(|| {
+            for _ in 0..1000 {
+                test::black_box(cs.recent());
             }
         });
     }

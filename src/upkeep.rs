@@ -17,6 +17,9 @@ pub struct Builder {
 }
 
 /// Handle to a running upkeep task.
+///
+/// If a handle is dropped, the background upkeep thread it belongs to is stopped, which will stop
+/// updating the recent time.
 #[derive(Debug)]
 pub struct Handle {
     done: Arc<AtomicBool>,
@@ -24,7 +27,11 @@ pub struct Handle {
 }
 
 impl Builder {
-    /// Creates a new [`Builder'], with a dedicated [`Clock`] instance.
+    /// Creates a new [`Builder`].
+    ///
+    /// This creates a new internal clock for acquiring the current time.  If you have an existing
+    /// [`Clock`] that is already calibrated, it is slightly faster to clone it and construct the
+    /// builder with [`new_with_clock`](Builder::new_with_clock) to avoid recalibrating.
     pub fn new(interval: Duration) -> Builder { Self::new_with_clock(interval, Clock::new()) }
 
     /// Creates a new [`Builder`] with the specified [`Clock`] instance.

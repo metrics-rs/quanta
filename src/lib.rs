@@ -343,7 +343,7 @@ impl Clock {
     /// Value is in nanoseconds.
     pub fn recent(&self) -> u64 {
         match &self.inner {
-            ClockType::Optimized(_, _, _) => GLOBAL_RECENT.load(Ordering::Acquire),
+            ClockType::Optimized(_, _, _) => GLOBAL_RECENT.load(Ordering::Relaxed),
             ClockType::Mock(mock) => mock.now(),
         }
     }
