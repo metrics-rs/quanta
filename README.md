@@ -3,17 +3,17 @@
 [![conduct-badge][]][conduct] [![travis-badge][]][travis] [![downloads-badge][] ![release-badge][]][crate] [![docs-badge][]][docs] [![libraries-io-badge][]][libraries-io] [![cargo-make-badge][]][cargo-make] [![license-badge][]](#license)
 
 [conduct-badge]: https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg
-[travis-badge]: https://img.shields.io/travis/nuclearfurnace/quanta/master.svg
+[travis-badge]: https://img.shields.io/travis/metrics-rs/quanta/master.svg
 [downloads-badge]: https://img.shields.io/crates/d/quanta.svg
 [release-badge]: https://img.shields.io/crates/v/quanta.svg
 [license-badge]: https://img.shields.io/crates/l/quanta.svg
 [docs-badge]: https://docs.rs/quanta/badge.svg
 [cargo-make-badge]: https://img.shields.io/badge/built%20with-cargo--make-yellow.svg
 [cargo-make]: https://sagiegurari.github.io/cargo-make/
-[libraries-io-badge]: https://img.shields.io/librariesio/github/nuclearfurnace/quanta.svg
+[libraries-io-badge]: https://img.shields.io/librariesio/github/metrics-rs/quanta.svg
 [libraries-io]: https://libraries.io/cargo/quanta
-[conduct]: https://github.com/nuclearfurnace/quanta/blob/master/CODE_OF_CONDUCT.md
-[travis]: https://travis-ci.org/nuclearfurnace/quanta
+[conduct]: https://github.com/metrics-rs/quanta/blob/master/CODE_OF_CONDUCT.md
+[travis]: https://travis-ci.org/metrics-rs/quanta
 [crate]: https://crates.io/crates/quanta
 [docs]: https://docs.rs/quanta
 
