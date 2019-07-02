@@ -50,7 +50,7 @@ quanta provides high-speed access to the native system timing facilities and in 
     test bench::time_instant_delta             ... bench:      64,285 ns/iter (+/- 3,311)
     test bench::time_instant_now               ... bench:      18,603 ns/iter (+/- 1,116)
 
-The non-delta tests represent the time it takes to take a single time measurement, while the delta tests represent the time to take two measurements and calculate the delta.  We can see that without using the optimized assembly features that both `quanta` and `clocksource` provide, taking single measurements is slower than [`Instant::now`] but but generally consumes the same amount of time overall to take the measurements and calculate the delta, around 60-65ns.
+The non-delta tests represent the time it takes to take a single time measurement, while the delta tests represent the time to take two measurements and calculate the delta.  We can see that without using the optimized assembly features that both `quanta` and `clocksource` provide, taking single measurements is slower than [`Instant::now`] but generally consumes the same amount of time overall to take the measurements and calculate the delta, around 60-65ns.
 
 Using optimized assembly, things can be much faster:
 
