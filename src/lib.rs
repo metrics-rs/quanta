@@ -51,6 +51,7 @@ use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
+use std::time::Duration;
 
 mod monotonic;
 use self::monotonic::Monotonic;
@@ -59,6 +60,8 @@ mod counter;
 use self::counter::Counter;
 mod mock;
 pub use self::mock::{IntoNanoseconds, Mock};
+mod instant;
+pub use self::instant::Instant;
 mod upkeep;
 pub use self::upkeep::{Builder, Handle};
 
@@ -222,11 +225,11 @@ impl Clock {
 
     /// Gets the current time, scaled to reference time.
     ///
-    /// Value is in nanoseconds.
-    pub fn now(&self) -> u64 {
+    /// Returns an [`Instant`]
+    pub fn now(&self) -> Instant {
         match &self.inner {
             ClockType::Optimized(_, source, _) => self.scaled(source.now()),
-            ClockType::Mock(mock) => mock.now(),
+            ClockType::Mock(mock) => Instant(mock.now()),
         }
     }
 
@@ -291,17 +294,18 @@ impl Clock {
     /// measurement is not guaranteed to be in nanoseconds and may vary.  It is only OK to avoid
     /// scaling raw measurements if you don't need actual nanoseconds.
     ///
-    /// Value is in nanoseconds.
-    pub fn scaled(&self, value: u64) -> u64 {
+    /// Returns an [`Instant`].
+    pub fn scaled(&self, value: u64) -> Instant {
         match &self.inner {
             ClockType::Optimized(_, _, calibration) => {
-                if calibration.identical {
+                let scaled = if calibration.identical {
                     value
                 } else {
                     (((value as f64 - calibration.src_time) * calibration.hz_ratio) + calibration.ref_time) as u64
-                }
+                };
+                Instant(scaled)
             },
-            ClockType::Mock(_) => value,
+            ClockType::Mock(_) => Instant(value),
         }
     }
 
@@ -313,12 +317,13 @@ impl Clock {
     /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
     ///
     /// [`scaled`]: Clock::scaled
-    pub fn delta(&self, start: u64, end: u64) -> u64 {
+    pub fn delta(&self, start: u64, end: u64) -> Duration {
         let raw_delta = end.wrapping_sub(start);
-        match &self.inner {
+        let scaled = match &self.inner {
             ClockType::Optimized(_, _, calibration) => (raw_delta as f64 * calibration.hz_ratio) as u64,
             ClockType::Mock(_) => raw_delta,
-        }
+        };
+        Duration::from_nanos(scaled)
     }
 
     /// Gets the most recent current time, scaled to reference time.
@@ -340,16 +345,16 @@ impl Clock {
     ///
     /// If the upkeep thread has not been started, the return value will be `0`.
     ///
-    /// Value is in nanoseconds.
-    pub fn recent(&self) -> u64 {
+    /// Returns an [`Instant`].
+    pub fn recent(&self) -> Instant {
         match &self.inner {
-            ClockType::Optimized(_, _, _) => GLOBAL_RECENT.load(Ordering::Relaxed),
-            ClockType::Mock(mock) => mock.now(),
+            ClockType::Optimized(_, _, _) => Instant::new(GLOBAL_RECENT.load(Ordering::Relaxed)),
+            ClockType::Mock(mock) => Instant::new(mock.now()),
         }
     }
 
     /// Updates the recent current time.
-    pub(crate) fn upkeep(value: u64) { GLOBAL_RECENT.store(value, Ordering::Release); }
+    pub(crate) fn upkeep(value: Instant) { GLOBAL_RECENT.store(value.0, Ordering::Release); }
 }
 
 impl Default for Clock {
@@ -363,15 +368,15 @@ mod tests {
     #[test]
     fn test_mock() {
         let (clock, mock) = Clock::mock();
-        assert_eq!(clock.now(), 0);
+        assert_eq!(clock.now().as_u64(), 0);
         mock.increment(42);
-        assert_eq!(clock.now(), 42);
+        assert_eq!(clock.now().as_u64(), 42);
     }
 
     #[test]
     fn test_now() {
         let clock = Clock::new();
-        assert!(clock.now() > 0);
+        assert!(clock.now().as_u64() > 0);
     }
 
     #[test]
@@ -396,6 +401,7 @@ mod tests {
     fn test_scaled() {
         let clock = Clock::new();
         let raw = clock.raw();
-        assert!(clock.scaled(raw) > 0);
+        let scaled = clock.scaled(raw);
+        assert!(scaled.as_u64() > 0);
     }
 }

@@ -19,9 +19,11 @@ keywords = ["rdtsc", "timing", "nanosecond"]
 [features]
 asm = ["tsc"]
 tsc = []
+metrics = ["metrics-core"]
 
 [dependencies]
-libc = "0.2.50"
+libc = "^0.2"
+metrics-core = { version = "^0.5", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.6", features = ["profileapi"] }
