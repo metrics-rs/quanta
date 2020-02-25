@@ -1,6 +1,7 @@
 #[cfg(feature = "metrics")]
 use metrics_core::AsNanoseconds;
 
+use std::cmp::{Ord, PartialOrd, Ordering};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
@@ -18,7 +19,7 @@ use std::time::Duration;
 /// instance.
 ///
 /// An `Instant` is 8 bytes.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
 impl Instant {
@@ -158,6 +159,18 @@ impl Sub<Instant> for Instant {
 
     fn sub(self, other: Instant) -> Duration {
         self.duration_since(other)
+    }
+}
+
+impl PartialOrd for Instant {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Instant {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0)
     }
 }
 
