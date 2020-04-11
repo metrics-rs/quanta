@@ -1,44 +1,55 @@
 use crate::ClockSource;
 
+#[cfg(all(target_arch = "x86", target_feature = "sse2"))]
+use std::arch::x86::{__rdtscp, _mm_lfence, _rdtsc};
+#[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
+use std::arch::x86_64::{__rdtscp, _mm_lfence, _rdtsc};
+
 #[derive(Debug, Clone, Default)]
 pub struct Counter;
 
 impl Counter {
     #[allow(dead_code)]
-    pub fn new() -> Self { Counter {} }
+    pub fn new() -> Self {
+        Counter {}
+    }
 }
 
-#[cfg(feature = "tsc")]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "sse2"
+))]
 impl ClockSource for Counter {
     fn now(&self) -> u64 {
-        let mut l: u32;
-        let mut h: u32;
         unsafe {
-            asm!("lfence; rdtsc" : "={eax}" (l), "={edx}" (h) ::: "volatile");
+            _mm_lfence();
+            _rdtsc()
         }
-        ((u64::from(h)) << 32) | u64::from(l)
     }
 
     fn start(&self) -> u64 {
-        let mut l: u32;
-        let mut h: u32;
         unsafe {
-            asm!("lfence; rdtsc; lfence" : "={eax}" (l), "={edx}" (h) ::: "volatile");
+            _mm_lfence();
+            let result = _rdtsc();
+            _mm_lfence();
+            result
         }
-        ((u64::from(h)) << 32) | u64::from(l)
     }
 
     fn end(&self) -> u64 {
-        let mut l: u32;
-        let mut h: u32;
+        let mut _aux: u32 = 0;
         unsafe {
-            asm!("rdtscp; lfence" : "={eax}" (l), "={edx}" (h) ::: "volatile");
+            let result = __rdtscp(&mut _aux as *mut _);
+            _mm_lfence();
+            result
         }
-        ((u64::from(h)) << 32) | u64::from(l)
     }
 }
 
-#[cfg(not(feature = "tsc"))]
+#[cfg(not(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "sse2"
+)))]
 impl ClockSource for Counter {
     fn now(&self) -> u64 {
         panic!("can't use counter without TSC support");

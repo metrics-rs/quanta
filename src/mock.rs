@@ -17,11 +17,15 @@ pub trait IntoNanoseconds {
 }
 
 impl IntoNanoseconds for u64 {
-    fn into_nanos(self) -> u64 { self }
+    fn into_nanos(self) -> u64 {
+        self
+    }
 }
 
 impl IntoNanoseconds for Duration {
-    fn into_nanos(self) -> u64 { self.as_nanos() as u64 }
+    fn into_nanos(self) -> u64 {
+        self.as_nanos() as u64
+    }
 }
 
 /// Controllable time source for use in tests.
@@ -39,19 +43,27 @@ impl Mock {
 
     /// Increments the time by the given amount.
     pub fn increment<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset.fetch_add(amount.into_nanos(), Ordering::Release);
+        self.offset
+            .fetch_add(amount.into_nanos(), Ordering::Release);
     }
 
     /// Decrements the time by the given amount.
     pub fn decrement<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset.fetch_sub(amount.into_nanos(), Ordering::Release);
+        self.offset
+            .fetch_sub(amount.into_nanos(), Ordering::Release);
     }
 }
 
 impl ClockSource for Mock {
-    fn now(&self) -> u64 { self.offset.load(Ordering::Acquire) }
+    fn now(&self) -> u64 {
+        self.offset.load(Ordering::Acquire)
+    }
 
-    fn start(&self) -> u64 { self.now() }
+    fn start(&self) -> u64 {
+        self.now()
+    }
 
-    fn end(&self) -> u64 { self.now() }
+    fn end(&self) -> u64 {
+        self.now()
+    }
 }

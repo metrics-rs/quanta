@@ -1,7 +1,7 @@
 #[cfg(feature = "metrics")]
 use metrics_core::AsNanoseconds;
 
-use std::cmp::{Ord, PartialOrd, Ordering};
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
@@ -47,7 +47,8 @@ impl Instant {
     /// println!("{:?}", new_now.duration_since(now));
     /// ```
     pub fn duration_since(&self, earlier: Instant) -> Duration {
-        self.0.checked_sub(earlier.0)
+        self.0
+            .checked_sub(earlier.0)
             .map(Duration::from_nanos)
             .expect("supplied instant is later than self")
     }
@@ -70,8 +71,7 @@ impl Instant {
     /// println!("{:?}", now.checked_duration_since(new_now)); // None
     /// ```
     pub fn checked_duration_since(&self, earlier: Instant) -> Option<Duration> {
-        self.0.checked_sub(earlier.0)
-            .map(Duration::from_nanos)
+        self.0.checked_sub(earlier.0).map(Duration::from_nanos)
     }
 
     /// Returns the amount of time elapsed from another instant to this one,
@@ -93,23 +93,21 @@ impl Instant {
     /// ```
     pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
         self.checked_duration_since(earlier)
-            .unwrap_or(Duration::new(0, 0))
+            .unwrap_or_else(|| Duration::new(0, 0))
     }
 
     /// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
-        self.0.checked_add(duration.as_nanos() as u64)
-            .map(Instant)
+        self.0.checked_add(duration.as_nanos() as u64).map(Instant)
     }
 
     /// Returns `Some(t)` where `t` is the time `self - duration` if `t` can be represented as
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
-        self.0.checked_sub(duration.as_nanos() as u64)
-            .map(Instant)
+        self.0.checked_sub(duration.as_nanos() as u64).map(Instant)
     }
 
     /// Gets the inner value of this `Instant`.
