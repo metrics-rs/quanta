@@ -32,10 +32,14 @@ impl Builder {
     /// This creates a new internal clock for acquiring the current time.  If you have an existing
     /// [`Clock`] that is already calibrated, it is slightly faster to clone it and construct the
     /// builder with [`new_with_clock`](Builder::new_with_clock) to avoid recalibrating.
-    pub fn new(interval: Duration) -> Builder { Self::new_with_clock(interval, Clock::new()) }
+    pub fn new(interval: Duration) -> Builder {
+        Self::new_with_clock(interval, Clock::new())
+    }
 
     /// Creates a new [`Builder`] with the specified [`Clock`] instance.
-    pub fn new_with_clock(interval: Duration, clock: Clock) -> Builder { Builder { interval, clock } }
+    pub fn new_with_clock(interval: Duration, clock: Clock) -> Builder {
+        Builder { interval, clock }
+    }
 
     /// Start the upkeep thread, periodically updating the global coarse time.
     ///

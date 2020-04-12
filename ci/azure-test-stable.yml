@@ -1,14 +1,14 @@
 jobs:
-- job: test_quanta_stable
-  displayName: Test Quanta Stable
+- job: test_stable
+  displayName: Test Stable
   strategy:
     matrix:
-      Linux:
-        vmImage: ubuntu-16.04
-      MacOS:
-        vmImage: macOS-10.13
-      Windows:
-        vmImage: vs2017-win2016
+      "(Ubuntu 18.04)":
+        vmImage: ubuntu-18.04
+      "(macOS X Catalina)":
+        vmImage: macOS-10.15
+      "(Windows Server 2019)":
+        vmImage: windows-2019
   pool:
     vmImage: $(vmImage)
 

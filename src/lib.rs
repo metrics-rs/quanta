@@ -45,8 +45,6 @@
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [#29722]: https://github.com/rust-lang/rust/issues/29722
 //! [tsc_support]: http://oliveryang.net/2015/09/pitfalls-of-TSC-usage/
-#![cfg_attr(feature = "tsc", feature(asm))]
-
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
@@ -56,7 +54,6 @@ use std::time::Duration;
 mod monotonic;
 use self::monotonic::Monotonic;
 mod counter;
-#[allow(unused_imports)]
 use self::counter::Counter;
 mod mock;
 pub use self::mock::{IntoNanoseconds, Mock};
@@ -69,9 +66,15 @@ static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
 
 type Reference = Monotonic;
 
-#[cfg(feature = "tsc")]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "sse2"
+))]
 type Source = Counter;
-#[cfg(not(feature = "tsc"))]
+#[cfg(not(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "sse2"
+)))]
 type Source = Monotonic;
 
 #[derive(Debug, Clone)]
@@ -167,7 +170,9 @@ impl Calibration {
 }
 
 impl Default for Calibration {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Unified clock for taking measurements.
@@ -301,10 +306,11 @@ impl Clock {
                 let scaled = if calibration.identical {
                     value
                 } else {
-                    (((value as f64 - calibration.src_time) * calibration.hz_ratio) + calibration.ref_time) as u64
+                    (((value as f64 - calibration.src_time) * calibration.hz_ratio)
+                        + calibration.ref_time) as u64
                 };
                 Instant(scaled)
-            },
+            }
             ClockType::Mock(_) => Instant(value),
         }
     }
@@ -320,7 +326,9 @@ impl Clock {
     pub fn delta(&self, start: u64, end: u64) -> Duration {
         let raw_delta = end.wrapping_sub(start);
         let scaled = match &self.inner {
-            ClockType::Optimized(_, _, calibration) => (raw_delta as f64 * calibration.hz_ratio) as u64,
+            ClockType::Optimized(_, _, calibration) => {
+                (raw_delta as f64 * calibration.hz_ratio) as u64
+            }
             ClockType::Mock(_) => raw_delta,
         };
         Duration::from_nanos(scaled)
@@ -354,11 +362,15 @@ impl Clock {
     }
 
     /// Updates the recent current time.
-    pub(crate) fn upkeep(value: Instant) { GLOBAL_RECENT.store(value.0, Ordering::Release); }
+    pub(crate) fn upkeep(value: Instant) {
+        GLOBAL_RECENT.store(value.0, Ordering::Release);
+    }
 }
 
 impl Default for Clock {
-    fn default() -> Clock { Clock::new() }
+    fn default() -> Clock {
+        Clock::new()
+    }
 }
 
 #[cfg(test)]
