@@ -1,8 +1,7 @@
 //! High-speed timing facility.
 //!
-//! quanta provides a generalized interface to native high-speed timing mechanisms on different
-//! target platforms, including support for accessing the TSC (time stamp counter) directly from
-//! the processor.
+//! quanta provides a generalized interface to the Time Stamp Counter (TSC) present on modern x86
+//! CPUs, allowing users to measure code section very precisely and with very low overhead.
 //!
 //! # Design
 //!
@@ -16,18 +15,13 @@
 //!
 //! quanta supports using the native high-speed timing facilities on the following platforms:
 //! - Windows ([QueryPerformanceCounter])
-//! - macOS/OS X ([mach_absolute_time])
+//! - macOS/OS X/iOS ([mach_continuous_time])
 //! - Linux/*BSD/Solaris ([clock_gettime])
 //!
 //! # TSC support
 //!
-//! Additionally, quanta has `RDTSC`/`RDTSCP` support for querying the time stamp counter directly
-//! from the processor.  Using this mode has some caveats:
-//! - you need to be running nightly to have access to the `asm!` macro/feature ([#29722])
-//! - your processor needs to be recent enough to support a stable TSC mode like invariant or
-//! constant TSC ([source][tsc_support])
-//!
-//! This feature is only usable when compiled with the `asm` feature flag.
+//! Accessing the TSC requires being on the x86/x86_64 architecture, with access to SSE2.  If this
+//! condition is not met, `quanta` will compile to use the native OS timing facilities.
 //!
 //! Generally speaking, most modern operating systems will already be attempting to use the TSC on
 //! your behalf, along with switching to another clocksource if they determine that the TSC is
@@ -37,7 +31,7 @@
 //! are _extremely_ fast.
 //!
 //! If your operations run in the hundreds of nanoseconds or less range, or you're measuring in a
-//! tight loop, using the TSC support could help you avoid the normal overhead which would otherwise
+//! tight loop, using the TSC could help you avoid the normal overhead which would otherwise
 //! contribute to a large chunk of actual time spent and would otherwise consume valuable cycles.
 //!
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
