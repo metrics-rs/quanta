@@ -436,8 +436,8 @@ mod tests {
         // of code, etc.
         let clock = Clock::new();
         let sleep_period = Duration::from_millis(100);
-        let lower = sleep_period.as_secs_f64() * 0.9;
-        let upper = sleep_period.as_secs_f64() * 1.1;
+        let lower = duration_to_f64(sleep_period) * 0.9;
+        let upper = duration_to_f64(sleep_period) * 1.1;
 
         let loop_iters = 50;
         let mut deltas = Vec::new();
