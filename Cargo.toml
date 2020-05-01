@@ -39,5 +39,6 @@ mach = "^0.3"
 winapi = { version = "^0.3", features = ["profileapi"] }
 
 [dev-dependencies]
+average = "^0.10"
 criterion = "^0.3"
 clocksource = "^0.5"
