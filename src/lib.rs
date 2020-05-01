@@ -375,7 +375,7 @@ impl Default for Clock {
 
 #[cfg(test)]
 mod tests {
-    use super::Clock;
+    use super::{duration_to_f64, Clock};
     use average::Variance;
     use std::thread;
     use std::time::Duration;
@@ -448,9 +448,14 @@ mod tests {
             deltas.push(end - start);
         }
 
-        let result: Variance = deltas.into_iter().map(|d| d.as_secs_f64()).collect();
+        let result: Variance = deltas.into_iter().map(duration_to_f64).collect();
 
         assert!(result.mean() >= lower && result.mean() <= upper);
         assert!(result.sample_variance() < result.mean() * 0.1);
     }
+}
+
+#[allow(dead_code)]
+fn duration_to_f64(d: Duration) -> f64 {
+    (d.as_secs() as f64) + (d.subsec_nanos() as f64) / (1_000_000_000 as f64)
 }
