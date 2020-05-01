@@ -181,7 +181,10 @@ impl Clock {
     /// Both the reference clock and source clock are chosen at compile-time to be the fastest
     /// underlying clocks available.  The source clock is calibrated against the reference clock if
     /// need be.
-    #[cfg(feature = "tsc")]
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "sse2"
+    ))]
     pub fn new() -> Clock {
         let reference = Reference::new();
         let source = Source::new();
@@ -198,7 +201,10 @@ impl Clock {
     /// Both the reference clock and source clock are chosen at compile-time to be the fastest
     /// underlying clocks available.  The source clock is calibrated against the reference clock if
     /// need be.
-    #[cfg(not(feature = "tsc"))]
+    #[cfg(not(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "sse2"
+    )))]
     pub fn new() -> Clock {
         let reference = Reference::new();
         let source = Source::new();
@@ -370,6 +376,9 @@ impl Default for Clock {
 #[cfg(test)]
 mod tests {
     use super::Clock;
+    use average::Variance;
+    use std::thread;
+    use std::time::Duration;
 
     #[test]
     fn test_mock() {
@@ -409,5 +418,39 @@ mod tests {
         let raw = clock.raw();
         let scaled = clock.scaled(raw);
         assert!(scaled.as_u64() > 0);
+    }
+
+    #[test]
+    fn test_calibration_integration() {
+        // We loop around a few times, sleeping for a determinate period.  We take a delta between
+        // the start and end of each of these loops.  We ensure these deltas are within a certain
+        // range of the sleep time.  We use the average here to try and smooth out any
+        // perturbations that were present on the host while the test was running.
+        //
+        // Our slack here is +/-10% which is a lot, but unfortunately, thread scheduling slack
+        // seems to be in that range so if we try to do very tight sleep loops, our jitter will be
+        // very high, even higher, so 100ms sleep with +/-10% slack is where we've landed.
+        //
+        // I'm open to ideas to be more precise about this... spawning more threads to run more
+        // trials with higher sleep times, computation-heavy loops where we're timing known chunks
+        // of code, etc.
+        let clock = Clock::new();
+        let sleep_period = Duration::from_millis(100);
+        let lower = sleep_period.as_secs_f64() * 0.9;
+        let upper = sleep_period.as_secs_f64() * 1.1;
+
+        let loop_iters = 50;
+        let mut deltas = Vec::new();
+        for _ in 0..loop_iters {
+            let start = clock.now();
+            thread::sleep(sleep_period);
+            let end = clock.now();
+            deltas.push(end - start);
+        }
+
+        let result: Variance = deltas.into_iter().map(|d| d.as_secs_f64()).collect();
+
+        assert!(result.mean() >= lower && result.mean() <= upper);
+        assert!(result.sample_variance() < result.mean() * 0.1);
     }
 }
