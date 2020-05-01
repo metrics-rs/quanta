@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.3]
+## [0.5.2] - 2020-05-01
 ### Changed
 - Fix the logic to figure out when calibration is required. ([#14](https://github.com/metrics-rs/quanta/pull/14))
 
