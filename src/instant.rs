@@ -8,25 +8,17 @@ use std::time::Duration;
 
 /// A point-in-time wall-clock measurement.
 ///
-/// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to wall-clock time.
+/// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to reference time.
 ///
-/// Unlike the stdlib `Instant`, this type has two meaningful differences:
-/// - It provides no guarantees around monotonicity whatsoever, beyond any guarantees provided by
-/// `Clock` itself.
-/// - It is intended to be opaque, but the internal value can be accessed.  There are no guarantees
-/// on the internal value timebase, or other factors, remaining stable over time and this
-/// convenience is only intended for comparisons of `Instant`s provided by the same exact `Clock`
-/// instance.
+/// Unlike the stdlib `Instant`, this type has a meaningful difference:
+/// - It is intended to be opaque, but the internal value _can_ be accessed.  There are no
+/// guarantees here and depending on this value directly is caveat emptor.
 ///
 /// An `Instant` is 8 bytes.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
 impl Instant {
-    pub(crate) fn new(inner: u64) -> Self {
-        Instant(inner)
-    }
-
     /// Returns the amount of time elapsed from another instant to this one.
     ///
     /// # Panics
@@ -40,7 +32,7 @@ impl Instant {
     /// use std::time::Duration;
     /// use std::thread::sleep;
     ///
-    /// let clock = Clock::new();
+    /// let mut clock = Clock::new();
     /// let now = clock.now();
     /// sleep(Duration::new(1, 0));
     /// let new_now = clock.now();
@@ -63,7 +55,7 @@ impl Instant {
     /// use std::time::Duration;
     /// use std::thread::sleep;
     ///
-    /// let clock = Clock::new();
+    /// let mut clock = Clock::new();
     /// let now = clock.now();
     /// sleep(Duration::new(1, 0));
     /// let new_now = clock.now();
@@ -84,7 +76,7 @@ impl Instant {
     /// use std::time::Duration;
     /// use std::thread::sleep;
     ///
-    /// let clock = Clock::new();
+    /// let mut clock = Clock::new();
     /// let now = clock.now();
     /// sleep(Duration::new(1, 0));
     /// let new_now = clock.now();

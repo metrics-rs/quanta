@@ -23,7 +23,7 @@ fn time_clocksource_counter_scaled(b: &mut Bencher) {
 }
 
 fn time_quanta_now(b: &mut Bencher) {
-    let clock = Clock::new();
+    let mut clock = Clock::new();
     b.iter(|| clock.now())
 }
 
@@ -93,7 +93,7 @@ fn time_quanta_raw_delta(b: &mut Bencher) {
 }
 
 fn time_quanta_now_delta(b: &mut Bencher) {
-    let clock = Clock::new();
+    let mut clock = Clock::new();
     b.iter(|| {
         let start = clock.now();
         let end = clock.now();

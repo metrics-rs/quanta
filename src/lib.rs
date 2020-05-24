@@ -1,49 +1,100 @@
-//! High-speed timing facility.
+//! Performant cross-platform timing with goodies.
 //!
-//! quanta provides a generalized interface to the Time Stamp Counter (TSC) present on modern x86
-//! CPUs, allowing users to measure code section very precisely and with very low overhead.
+//! `quanta` provides a simple ans fast API for measuring the current time and the duration between
+//! events.  It does this by providing a thin layer on top of native OS timing functions, or, if
+//! available, using the Time Stamp Counter feature found on modern CPUs.
 //!
 //! # Design
+//! Internally, `quanta` maintains the concept of two potential clock sources: a reference clock and
+//! a source clock.
 //!
-//! Internally, two clocks are used — a reference and a source — to provide high-speed access to
-//! timing values, while allowing for conversion back to a reference timescale that matches the
-//! underlying system.
+//! The reference clock is provided by the OS: using the native timing facilities provided, we assume
+//! that we can always depend on the OS as a backstop.  The source clock, if available, is a thin
+//! layer over accessing the Time Stamp Counter directly.  `quanta` will utilize the source clock
+//! when it determines it to be possible.
 //!
-//! Calibration between the reference and source happens at initialization time of [`Clock`].
+//! Depending on the underlying processor(s), `quanta` will figure out the most accurate/efficient
+//! way to calibrate the source clock to the reference clock in order to provide measurements scaled
+//! to wall clock time.  Details on this behavior are detailed below.
 //!
-//! # Platform support
+//! # Features
+//! Beyond simply taking measurements of the current time, `quanta` provides features for more easily
+//! working with clocks, as well as being able to enhance performance further:
+//! - ability to mock the clock
+//! - ability to provide extremely fast granular time
 //!
-//! quanta supports using the native high-speed timing facilities on the following platforms:
+//! Mockability means that for areas of your code that hold on to a `Clock` reference, one can be
+//! passed in that is mocked, allowing you to control the passage of time, which is highly useful
+//! for testing time-based code.
+//!
+//! `quanta` also provides a "recent" time feature, which allows a slightly-delayed version of time
+//! to be provided to callers, trading off accuracy for speed of access.  An upkeep thread is
+//! spawned, which is responsible for taking measurements and updating the global recent time.
+//! Callers then can access the cached value by calling `Clock::recent`.  This interface can be up
+//! to 2x faster than the highest performance configuration for a regular `Clock`, but is limited
+//! in accuracy by the update interval of the upkeep thread.
+//!
+//! # Platform Support
+//! `quanta` carries support for most major operating systems out of the box:
 //! - Windows ([QueryPerformanceCounter])
 //! - macOS/OS X/iOS ([mach_continuous_time])
 //! - Linux/*BSD/Solaris ([clock_gettime])
 //!
-//! # TSC support
+//! These platforms are supported in the "reference" clock sense, and support for using the Time
+//! Stamp Counter as a clocksource is more subtle, and explained below.
 //!
-//! Accessing the TSC requires being on the x86/x86_64 architecture, with access to SSE2.  If this
-//! condition is not met, `quanta` will compile to use the native OS timing facilities.
+//! # Time Stamp Counter support
+//! Accessing the TSC requires being on the x86/x86_64 architecture, with access to SSE2.
+//! Additionally, the processor must support the nonstop, or invariant, mode of TSC.  This ensures
+//! that the TSC ticks at a constant rate which can be easily scaled.  As we aren't in kernel mode,
+//! `quanta` has no way of tracking or understanding the subtle changes in power states which might
+//! otherwise skew the TSC values being read from the processor, and thus can't meaningfully
+//! account for said changes.
 //!
-//! Generally speaking, most modern operating systems will already be attempting to use the TSC on
-//! your behalf, along with switching to another clocksource if they determine that the TSC is
-//! unstable or providing unsuitable speed/accuracy.  The primary reason to use TSC directly is that
-//! calling it from userspace is measurably faster — although the "slower" methods are still on
-//! the order of of tens of nanoseconds — and can be useful for timing operations which themselves
-//! are _extremely_ fast.
+//! We check the processor directly for invariant TSC support at runtime, but here are some rough
+//! guidelines of what processor generations/models you can expect to have it:
+//! - Intel Nehalem and newer for server-grade
+//! - Intel Skylake and newer for desktop-grade
+//! - VIA Centaur Nano and newer(circumstancial evidence here)
+//! - AMD Phenom and newer
 //!
-//! If your operations run in the hundreds of nanoseconds or less range, or you're measuring in a
-//! tight loop, using the TSC could help you avoid the normal overhead which would otherwise
-//! contribute to a large chunk of actual time spent and would otherwise consume valuable cycles.
+//! This list is, again, a very rough guideline of what to likely expect in the real world.
+//! Ultimately, `quanta` will definitely query CPUID information to determine if the processor has
+//! the required features to use the TSC.
+//!
+//! # Calibration
+//! As the Time Stamp Counter doesn't necessarily tick at reference scale (one tick being one
+//! nanosecond), we have to apply a scaling factor to make it usable in the reference time scale.
+//!
+//! In some cases, on newer processors, the frequency of the TSC can be queried directly from the
+//! processor.  In other cases, `quanta` will have to run its own calibration before the clock is
+//! ready to be used: taking measurements between the reference and source clocks to determine the
+//! scaling factor.
+//!
+//! This calibration is stored globally and reused for subsequent clocks.  However, it will execute
+//! blocking code until the calibration is complete, which will manifest as your application
+//! potentially taking extra time during startup, etc.
+//!
+//! This is an unfortuate but required part of establishing the reference time scaling factor when
+//! the frequency isn't able to be queried directly.
+//!
+//! # Caveats
+//! Utilizing the TSC can be a tricky affair, and so here is a list of caveats that may or may not
+//! apply, and is in no way exhaustive:
+//! - CPU hotplug behavior is undefined
+//! - raw values may time warp
+//! - measurements from the TSC may drift past or behind the comparable reference clock
 //!
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
-//! [mach_absolute_time]: https://developer.apple.com/library/archive/qa/qa1398/_index.html
+//! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
-//! [#29722]: https://github.com/rust-lang/rust/issues/29722
-//! [tsc_support]: http://oliveryang.net/2015/09/pitfalls-of-TSC-usage/
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
 use std::time::Duration;
+
+use once_cell::sync::OnceCell;
 
 mod monotonic;
 use self::monotonic::Monotonic;
@@ -54,26 +105,31 @@ pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
 pub use self::instant::Instant;
 mod upkeep;
-pub use self::upkeep::{Builder, Handle};
+pub use self::upkeep::{Handle, Upkeep};
+mod stats;
+use self::stats::Variance;
 
 static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
-type Reference = Monotonic;
+// Run 100 rounds of calibration before we start actually seeing what the numbers look like.
+const MINIMUM_CAL_ROUNDS: u64 = 500;
 
-#[cfg(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2"
-))]
-type Source = Counter;
-#[cfg(not(all(
-    any(target_arch = "x86", target_arch = "x86_64"),
-    target_feature = "sse2"
-)))]
-type Source = Monotonic;
+// We want our maximum error to be 10 nanoseconds.
+const MAXIMUM_CAL_ERROR_NS: u64 = 10;
 
+// Don't run the calibration loop for longer than 200ms of wall time.
+const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
+
+const BASE_LEAVES: u32 = 0x0;
+const EXTENDED_LEAVES: u32 = 0x8000_0000;
+const APMI_LEAF: u32 = 0x8000_0007;
+
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 enum ClockType {
-    Optimized(Reference, Source, Calibration),
+    Monotonic(Monotonic),
+    Counter(u64, Monotonic, Counter, Calibration),
     Mock(Arc<Mock>),
 }
 
@@ -106,60 +162,133 @@ trait ClockSource {
     fn end(&self) -> u64;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct Calibration {
-    identical: bool,
-    ref_time: f64,
-    src_time: f64,
-    ref_hz: f64,
-    src_hz: f64,
-    hz_ratio: f64,
+    ref_time: u64,
+    src_time: u64,
+    scale_factor: u64,
+    scale_shift: u32,
 }
 
 impl Calibration {
     pub fn new() -> Calibration {
         Calibration {
-            identical: false,
-            ref_time: 0.0,
-            src_time: 0.0,
-            ref_hz: 1_000_000_000.0,
-            src_hz: 1_000_000_000.0,
-            hz_ratio: 1.0,
+            ref_time: 0,
+            src_time: 0,
+            scale_factor: 1,
+            scale_shift: 1,
         }
     }
 
-    #[allow(dead_code)]
-    pub fn identical() -> Calibration {
-        let mut calibration = Self::new();
-        calibration.identical = true;
-        calibration
-    }
-
-    #[allow(dead_code)]
-    pub fn calibrate<R, S>(&mut self, reference: &R, source: &S)
+    fn calibrate<R, S>(&mut self, reference: &R, source: &S)
     where
         R: ClockSource,
         S: ClockSource,
     {
-        self.ref_time = reference.now() as f64;
-        self.src_time = source.start() as f64;
+        let mut variance = Variance::default();
+        let deadline = reference.now() + MAXIMUM_CAL_TIME.as_nanos() as u64;
 
-        let ref_end = self.ref_time + self.ref_hz;
+        self.ref_time = reference.now();
+        self.src_time = source.now();
 
+        println!(
+            "fancy2: start={} deadline={} ({})",
+            self.ref_time,
+            deadline,
+            MAXIMUM_CAL_TIME.as_nanos()
+        );
+
+        let loop_delta = 1000;
         loop {
-            let t = reference.now() as f64;
-            if t >= ref_end {
+            // Busy loop to burn some time.
+            let mut last = reference.now();
+            let target = last + loop_delta;
+            while last < target {
+                last = reference.now();
+            }
+
+            // We put an upper bound on how long we run calibration before to provide a predictable
+            // overhead to the calibration process.  In practice, even if we hit the calibration
+            // deadline, we should still have run a sufficient number of rounds to get an accurate
+            // calibration.
+            if last >= deadline {
+                println!("fancy2: hit cal loop deadline");
+
+                let mean = variance.mean().abs();
+                let mean_error = variance.mean_error().abs();
+                println!(
+                    "fancy2: stats at deadline: mean={} error={}, max_error={}",
+                    mean, mean_error, MAXIMUM_CAL_ERROR_NS
+                );
                 break;
+            }
+
+            // Adjust our calibration before we take our measurement.
+            self.adjust_cal_ratio(reference, source);
+
+            let r_time = reference.now();
+            let s_raw = source.now();
+            let s_time = scale_src_to_ref(s_raw, &self);
+            variance.add(s_time as f64 - r_time as f64);
+
+            if variance.has_significant_result() {
+                let mean = variance.mean().abs();
+                let mean_error = variance.mean_error().abs();
+                let mean_with_error = variance.mean_with_error();
+                let samples = variance.samples();
+
+                if samples > MINIMUM_CAL_ROUNDS
+                    && mean_with_error < MAXIMUM_CAL_ERROR_NS
+                    && mean_error / mean <= 1.0
+                {
+                    //&& self.scale_factor < 8000 {
+                    println!(
+                        "fancy2: reached error threshold (mean={} error={}, max_error={})",
+                        mean, mean_error, MAXIMUM_CAL_ERROR_NS
+                    );
+                    println!(
+                        "fancy2: cal config: num={} denom={}",
+                        self.scale_factor, self.scale_shift
+                    );
+                    break;
+                }
             }
         }
 
-        let src_end = source.end() as f64;
+        let delta = reference.now() - self.ref_time;
+        println!("fancy2: completed in {}ns", delta);
+    }
 
-        let ref_d = ref_end - self.ref_time;
-        let src_d = src_end - self.src_time;
+    fn adjust_cal_ratio<R, S>(&mut self, reference: &R, source: &S)
+    where
+        R: ClockSource,
+        S: ClockSource,
+    {
+        // Overall algorithm: measure the reference and source clock deltas, which leaves us witrh
+        // a fraction of ref_d/src_d representing our source-to-reference clock scaling ratio.
+        //
+        // Find the next highest number, starting with src_d, that is a power of two.  That number
+        // is now our new denominator in the scaling ratio.  We scale the old numerator (ref_d) by
+        // a commensurate amount to match the delta between src_d and src_d_po2.
+        let ref_end = reference.now();
+        let src_end = source.end();
 
-        self.src_hz = (src_d * self.ref_hz) / ref_d;
-        self.hz_ratio = self.ref_hz / self.src_hz;
+        let ref_d = ref_end.wrapping_sub(self.ref_time);
+        let src_d = src_end.wrapping_sub(self.src_time);
+
+        // TODO: we should almost never get a zero here because that would mean denom was greater
+        // than 2^63 which is already a red flag.. but i'm not 100% sure if we can prove it well
+        // enough to simply keep the panic around? gotta think on this
+        let src_d_po2 = src_d.next_power_of_two();
+        if src_d_po2 == 0 {
+            panic!("po2_denom was zero!");
+        }
+
+        // TODO: lossy conversion back and forth just to get an approximate value, can we do better
+        // with integer math? not sure
+        let po2_ratio = src_d_po2 as f64 / src_d as f64;
+        self.scale_factor = (ref_d as f64 * po2_ratio) as u64;
+        self.scale_shift = src_d_po2.trailing_zeros();
     }
 }
 
@@ -176,43 +305,25 @@ pub struct Clock {
 }
 
 impl Clock {
-    /// Creates a new clock with the optimal reference and source.
+    /// Creates a new clock with the optimal reference and source clocks.
     ///
-    /// Both the reference clock and source clock are chosen at compile-time to be the fastest
-    /// underlying clocks available.  The source clock is calibrated against the reference clock if
-    /// need be.
-    #[cfg(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "sse2"
-    ))]
+    /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
-        let reference = Reference::new();
-        let source = Source::new();
-        let mut calibration = Calibration::new();
-        calibration.calibrate(&reference, &source);
+        let reference = Monotonic::new();
+        let constant_tsc = unsafe { has_constant_or_better_tsc() };
+        let inner = if constant_tsc {
+            let source = Counter::new();
+            let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
+                let mut calibration = Calibration::new();
+                calibration.calibrate(&reference, &source);
+                calibration
+            });
+            ClockType::Counter(0, reference, source, *calibration)
+        } else {
+            ClockType::Monotonic(reference)
+        };
 
-        Clock {
-            inner: ClockType::Optimized(reference, source, calibration),
-        }
-    }
-
-    /// Creates a new clock with the optimal reference and source.
-    ///
-    /// Both the reference clock and source clock are chosen at compile-time to be the fastest
-    /// underlying clocks available.  The source clock is calibrated against the reference clock if
-    /// need be.
-    #[cfg(not(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "sse2"
-    )))]
-    pub fn new() -> Clock {
-        let reference = Reference::new();
-        let source = Source::new();
-        let calibration = Calibration::identical();
-
-        Clock {
-            inner: ClockType::Optimized(reference, source, calibration),
-        }
+        Clock { inner }
     }
 
     /// Creates a new clock that is mocked for controlling the underlying time.
@@ -230,19 +341,29 @@ impl Clock {
 
     /// Gets the current time, scaled to reference time.
     ///
-    /// Returns an [`Instant`]
-    pub fn now(&self) -> Instant {
+    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed
+    /// to return a monotonically increasing value between calls to the same `Clock` instance.
+    ///
+    /// Returns an [`Instant`].
+    pub fn now(&mut self) -> Instant {
         match &self.inner {
-            ClockType::Optimized(_, source, _) => self.scaled(source.now()),
+            ClockType::Monotonic(monotonic) => Instant(monotonic.now()),
+            ClockType::Counter(mut last, _, counter, _) => {
+                let now = counter.now();
+                if now > last {
+                    last = now;
+                }
+                self.scaled(last)
+            }
             ClockType::Mock(mock) => Instant(mock.now()),
         }
     }
 
-    /// Gets the underlying time from the source clock.
+    /// Gets the underlying time from the fastest available clock source.
     ///
-    /// Value is not guaranteed to be in nanoseconds.
-    ///
-    /// It requires conversion to reference time, however, via [`scaled`] or [`delta`].
+    /// As the clock source may or may not be the TSC, value is not guaranteed to be in nanoseconds
+    /// or to be monotonic.  Value can be scaled to reference time by calling either [`scaled`]
+    /// or [`delta`].
     ///
     /// If you need maximum accuracy in your measurements, consider using [`start`] and [`end`].
     ///
@@ -252,7 +373,8 @@ impl Clock {
     /// [`end`]: Clock::end
     pub fn raw(&self) -> u64 {
         match &self.inner {
-            ClockType::Optimized(_, source, _) => source.now(),
+            ClockType::Monotonic(monotonic) => monotonic.now(),
+            ClockType::Counter(_, _, counter, _) => counter.now(),
             ClockType::Mock(mock) => mock.now(),
         }
     }
@@ -270,7 +392,8 @@ impl Clock {
     /// [`raw`]: Clock::raw
     pub fn start(&self) -> u64 {
         match &self.inner {
-            ClockType::Optimized(_, source, _) => source.start(),
+            ClockType::Monotonic(monotonic) => monotonic.start(),
+            ClockType::Counter(_, _, counter, _) => counter.start(),
             ClockType::Mock(mock) => mock.now(),
         }
     }
@@ -288,7 +411,8 @@ impl Clock {
     /// [`raw`]: Clock::raw
     pub fn end(&self) -> u64 {
         match &self.inner {
-            ClockType::Optimized(_, source, _) => source.end(),
+            ClockType::Monotonic(monotonic) => monotonic.end(),
+            ClockType::Counter(_, _, counter, _) => counter.end(),
             ClockType::Mock(mock) => mock.now(),
         }
     }
@@ -302,34 +426,34 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn scaled(&self, value: u64) -> Instant {
         match &self.inner {
-            ClockType::Optimized(_, _, calibration) => {
-                let scaled = if calibration.identical {
-                    value
-                } else {
-                    (((value as f64 - calibration.src_time) * calibration.hz_ratio)
-                        + calibration.ref_time) as u64
-                };
-                Instant(scaled)
+            ClockType::Counter(_, _, _, calibration) => {
+                Instant(scale_src_to_ref(value, &calibration) as u64)
             }
-            ClockType::Mock(_) => Instant(value),
+            _ => Instant(value),
         }
     }
 
     /// Calculates the delta between two measurements, and scales to reference time.
-    ///
-    /// Value is in nanoseconds.
     ///
     /// This method is slightly faster when you know you need the delta between two raw
     /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
     ///
     /// [`scaled`]: Clock::scaled
     pub fn delta(&self, start: u64, end: u64) -> Duration {
+        // Safety: we want wrapping_sub on the end/start delta calculation so that two measurements
+        // split across a rollover boundary still return the right result.  However, we also know
+        // the TSC could potentially give us different values between cores/sockets, so we're just
+        // doing our due diligence here to make sure we're not about to create some wacky duration.
+        if end <= start {
+            return Duration::new(0, 0);
+        }
+
         let raw_delta = end.wrapping_sub(start);
         let scaled = match &self.inner {
-            ClockType::Optimized(_, _, calibration) => {
-                (raw_delta as f64 * calibration.hz_ratio) as u64
+            ClockType::Counter(_, _, _, calibration) => {
+                mul_div_po2_u64(raw_delta, calibration.scale_factor, calibration.scale_shift)
             }
-            ClockType::Mock(_) => raw_delta,
+            _ => raw_delta,
         };
         Duration::from_nanos(scaled)
     }
@@ -337,27 +461,20 @@ impl Clock {
     /// Gets the most recent current time, scaled to reference time.
     ///
     /// This method provides ultra-low-overhead access to a slightly-delayed version of the current
-    /// time.  Instead of querying the underlying source clock directly, an external task -- the
-    /// upkeep thread -- is responsible for polling the time and updating a global reference to the
-    /// "recent" time, which this method then loads.
+    /// time.  Instead of querying the underlying source clock directly, a shared, global value is
+    /// read directly without the need to scale to reference time.
     ///
-    /// This method is usually at least 2x faster than querying the clock directly, and could be
-    /// even faster in cases where getting the time goes through a heavy virtualized interface, or
-    /// requires syscalls.
-    ///
-    /// The resolution of the time is still in nanoseconds, although the accuracy can only be as
-    /// high as the interval at which the upkeep thread updates the global recent time.
-    ///
-    /// For example, the upkeep thread could be configured to update the time every millisecond,
-    /// which would provide a measurement that should be, at most, 1ms behind the actual time.
+    /// The upkeep thread must be started in order to update the time.  You can read the
+    /// documentation for [`Builder`] for more information on starting the upkeep thread, as well
+    /// as the details of the "current time" mechanism.
     ///
     /// If the upkeep thread has not been started, the return value will be `0`.
     ///
     /// Returns an [`Instant`].
     pub fn recent(&self) -> Instant {
         match &self.inner {
-            ClockType::Optimized(_, _, _) => Instant::new(GLOBAL_RECENT.load(Ordering::Relaxed)),
-            ClockType::Mock(mock) => Instant::new(mock.now()),
+            ClockType::Mock(mock) => Instant(mock.now()),
+            _ => Instant(GLOBAL_RECENT.load(Ordering::Relaxed)),
         }
     }
 
@@ -373,16 +490,222 @@ impl Default for Clock {
     }
 }
 
+#[inline]
+fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
+    let delta = src_raw.saturating_sub(cal.src_time);
+    let scaled = mul_div_po2_u64(delta, cal.scale_factor, cal.scale_shift);
+    scaled + cal.ref_time
+}
+
+#[inline]
+pub fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
+    // This is a modified decomposed muldiv.  We only support a denominator that is a power of two,
+    // and we use pure bitwise shifting and masking to replace the normal modulo and division.
+    //
+    // `denom` is actually the number of bits to shift by, _not_ the integer value of the
+    // denominator.
+    let q = value.checked_shr(denom).unwrap_or(0);
+    let r = value & !(1 << denom);
+    q * numer + ((r * numer).checked_shr(denom).unwrap_or(0))
+}
+
+#[allow(dead_code)]
+#[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
+unsafe fn has_constant_or_better_tsc() -> bool {
+    // Ultimately what we're looking to do here is narrow down to make sure we're using a CPU that
+    // can present a constant or invariant TSC.
+    //
+    // If it only has a constant TSC, we can use the slower calibration loop and essentially throw
+    // up "caveat emptor" to the user.  We'll protect them from time warped readings, but it just
+    // means they might get more bad readings or skew over time.  Such is life.  It's documented.
+    //
+    // If they have nonstop TSC, then there's a good chance that the processor has a known speed
+    // mapping or it has native support for extracting the TSC frequency.
+    //
+    // Either way, all we care about here is making sure that constant (or better) TSC is
+    // available to us.
+    //
+    // All of this special handling for CPU manufacturers, specific family/model combinations, etc,
+    // is derived from the Linux kernel, master branch, as of 2020-05-19.
+
+    // We limit ourselves to Intel, AMD, and Centaur.  There are technically other CPUs that
+    // seemingly support constant or better TSC, but there's no chance in hell I have access to
+    // test that out.  People can reach out if they want support.
+    let cpu_mfg = read_cpuid_mfg();
+    match cpu_mfg.as_str() {
+        "GenuineIntel" => {
+            // All Intel processors from the Core microarchitecture and on should at least have
+            // constant TSC, which should be good enough for us to calibrate against.
+            if read_cpuid_family_model() >= 0x60E {
+                return true;
+            }
+        }
+        // No special overrides for AMD processors... yet?
+        "AuthenticAMD" => {}
+        "CentaurHauls" => {
+            // VIA Nano and above should at least have constant TSC.
+            if read_cpuid_family_model() >= 0x60F {
+                return true;
+            }
+        }
+        // Unknown/unsupported processor.
+        _ => return false,
+    }
+
+    // TODO: if vendor isn't intel, and num cpus (not cores) > 1, good chance we won't be synced
+    // (kernel/tsc.c:1214) looks like lscpu can detect socket count, can we emulate it?
+    if has_multiple_sockets() && cpu_mfg != "GenuineIntel" {
+        return false;
+    }
+
+    // We check CPUID for nonstop/invariant TSC as our fallback. (CPUID EAX=0x8000_0007, bit 8)
+    read_cpuid_nonstop_tsc()
+}
+
+#[allow(dead_code)]
+#[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
+unsafe fn has_constant_or_better_tsc() -> bool {
+    false
+}
+
+unsafe fn read_cpuid_mfg() -> String {
+    use core::arch::x86_64::__cpuid;
+
+    let result = __cpuid(0);
+    let mut buf = [0u8; 12];
+    buf[0..4].copy_from_slice(&result.ebx.to_le_bytes()[..]);
+    buf[4..8].copy_from_slice(&result.edx.to_le_bytes()[..]);
+    buf[8..12].copy_from_slice(&result.ecx.to_le_bytes()[..]);
+
+    String::from_utf8_unchecked(Vec::from(&buf[..]))
+}
+
+unsafe fn read_cpuid_nonstop_tsc() -> bool {
+    use core::arch::x86_64::{__cpuid, __get_cpuid_max};
+
+    // Make sure the given leaf we need to check exists. 0x8000_0007 is the "advanced power
+    // management information" that contains whether or not nonstop TSC is supported.
+    let (highest_leaf, _) = __get_cpuid_max(EXTENDED_LEAVES);
+    if highest_leaf < APMI_LEAF {
+        println!("cpuid level to low to read InvariantTSC: {}", highest_leaf);
+        return false;
+    }
+
+    let result = __cpuid(APMI_LEAF);
+    let nonstop = (result.edx & (1 << 8)) != 0;
+    println!("nonstop tsc: {}", nonstop);
+    nonstop
+}
+
+unsafe fn read_cpuid_intel_tsc_frequency() -> Option<u64> {
+    use core::arch::x86_64::{__cpuid, __get_cpuid_max};
+
+    // Only available on Intel.
+    let cpu_mfg = read_cpuid_mfg();
+    if cpu_mfg != "GenuineIntel" {
+        println!("not intel");
+        return None;
+    }
+
+    // Make sure the given leaf we need to check exists.
+    let (highest_leaf, _) = __get_cpuid_max(BASE_LEAVES);
+    if highest_leaf < 0x15 {
+        println!("0x15 leaf not available");
+        return None;
+    }
+
+    // Time Stamp Counter and Nominal Core Crystal Clock Information Leaf (0x15H)
+    //
+    // We need the numerator (EBX) and the denominator (EAX) to both be present otherwise we can't
+    // do anything, but the core crystal frequency (ECX) may not be present.
+    // it another way if it's not available here.
+    let result = __cpuid(0x15);
+    if result.ebx == 0 || result.eax == 0 {
+        println!("no numerator/denominator available");
+        return None;
+    }
+
+    let numerator = result.ebx as u64;
+    let denominator = result.eax as u64;
+
+    // If we didn't get the core crystal frequency from 0x15, try mapping it to known frequencies.
+    // (Intel SDM, Vol. 3B, 18-137, section 18.7.3, table 18-85, "Nominal Core Crystal Clock Frequency")
+    let mut crystal_hz = result.ecx as u64;
+    if crystal_hz == 0 {
+        let mapped_crystal_hz = match read_cpuid_family_model() {
+            // Intel Xeon Processor Scalable Family (Skylake, Cascade Lake, Cooper Lake)
+            0x655 => 25_000_000,
+            // 6th generation/7th generation processors (Skylake, Kaby Lake)
+            0x64E | 0x65E | 0x68E | 0x69E => 24_000_000,
+            // 2nd, 3rd, 4th, and 5th generation processors (Sandy Bridge, Ivy Bridge, Haswell, Broadwell)
+            0x62A | 0x63A | 0x63C | 0x645 | 0x646 | 0x647 | 0x63D | 0x62D | 0x63E | 0x63F
+            | 0x656 | 0x64F => {
+                // We multiply by the reciprocal of the core crystal clock ratio because we're
+                // returning the TSC frequency directly, so when we go to calculate the ratio, we
+                // want to cancel out the normal ratio math.
+                if highest_leaf < 0x16 {
+                    println!("0x16 leaf not available");
+                    0
+                } else {
+                    0
+                }
+            }
+            // Whatever it is, we don't handle it yet.
+            _ => 0,
+        };
+
+        if mapped_crystal_hz != 0 {
+            crystal_hz = mapped_crystal_hz;
+        }
+    }
+
+    // We failed to get the crystal frequency or processor base frequency, so we can't calculate
+    // the ratio.  Womp.  Bail out.
+    if crystal_hz == 0 {
+        return None;
+    }
+
+    Some(crystal_hz * (numerator / denominator))
+}
+
+unsafe fn read_cpuid_family_model() -> u32 {
+    use core::arch::x86_64::__cpuid;
+
+    // Intel doesn't use extended family as far as I can tell, so basically we compute the
+    // family/model identifier as:
+    //
+    // Nobody seems to use extended family, so we munge together the following fields:
+    //
+    // [8 bits - family] [4 bits - extended model] [4 bits - model]
+    //
+    // Thus, for Intel Skylake (family=6, extended model=5, model=5), our return value would be
+    // 0x0655;
+    let result = __cpuid(0x01);
+    let family = result.eax & (0xF << 8);
+    let extended_model = result.eax & (0xF << 16);
+    let model = result.eax & (0xF << 4);
+
+    family + extended_model + model
+}
+
+unsafe fn read_msr_intel_platform_info_bus_frequency() -> Option<u64> {
+    // TODO: implement me! literally only doable on linux, though, via /dev/cpu, which requires
+    // root so this may be a crapshoot in terms of providing a solid fallback for older CPUs
+    None
+}
+
+fn has_multiple_sockets() -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{duration_to_f64, Clock};
-    use average::Variance;
-    use std::thread;
-    use std::time::Duration;
+    use super::{Clock, ClockSource, Monotonic};
+    use average::{Merge, Variance};
 
     #[test]
     fn test_mock() {
-        let (clock, mock) = Clock::mock();
+        let (mut clock, mock) = Clock::mock();
         assert_eq!(clock.now().as_u64(), 0);
         mock.increment(42);
         assert_eq!(clock.now().as_u64(), 42);
@@ -390,7 +713,7 @@ mod tests {
 
     #[test]
     fn test_now() {
-        let clock = Clock::new();
+        let mut clock = Clock::new();
         assert!(clock.now().as_u64() > 0);
     }
 
@@ -421,41 +744,59 @@ mod tests {
     }
 
     #[test]
-    fn test_calibration_integration() {
-        // We loop around a few times, sleeping for a determinate period.  We take a delta between
-        // the start and end of each of these loops.  We ensure these deltas are within a certain
-        // range of the sleep time.  We use the average here to try and smooth out any
-        // perturbations that were present on the host while the test was running.
-        //
-        // Our slack here is +/-10% which is a lot, but unfortunately, thread scheduling slack
-        // seems to be in that range so if we try to do very tight sleep loops, our jitter will be
-        // very high, even higher, so 100ms sleep with +/-10% slack is where we've landed.
-        //
-        // I'm open to ideas to be more precise about this... spawning more threads to run more
-        // trials with higher sleep times, computation-heavy loops where we're timing known chunks
-        // of code, etc.
-        let clock = Clock::new();
-        let sleep_period = Duration::from_millis(100);
-        let lower = duration_to_f64(sleep_period) * 0.9;
-        let upper = duration_to_f64(sleep_period) * 1.1;
+    fn test_reference_source_calibration() {
+        let mut clock = Clock::new();
+        let reference = Monotonic::new();
 
-        let loop_iters = 50;
-        let mut deltas = Vec::new();
-        for _ in 0..loop_iters {
-            let start = clock.now();
-            thread::sleep(sleep_period);
-            let end = clock.now();
-            deltas.push(end - start);
+        let loops = 10000;
+        let samples = 1024;
+
+        let mut overall = Variance::new();
+        let mut deltas = Vec::with_capacity(samples);
+        deltas.reserve(samples);
+
+        for _ in 0..loops {
+            deltas.clear();
+            for _ in 0..samples {
+                let qstart = clock.now();
+                let rstart = reference.now();
+
+                deltas.push(rstart.saturating_sub(qstart.as_u64()));
+            }
+
+            let local = deltas.iter().map(|i| *i as f64).collect::<Variance>();
+            overall.merge(&local);
         }
 
-        let result: Variance = deltas.into_iter().map(duration_to_f64).collect();
-
-        assert!(result.mean() >= lower && result.mean() <= upper);
-        assert!(result.sample_variance() < result.mean() * 0.1);
+        println!("mean={} error={}", overall.mean(), overall.error());
+        assert!(true);
     }
-}
 
-#[allow(dead_code)]
-fn duration_to_f64(d: Duration) -> f64 {
-    (d.as_secs() as f64) + (d.subsec_nanos() as f64) / (1_000_000_000 as f64)
+    #[test]
+    fn test_reference_self_calibration() {
+        let reference = Monotonic::new();
+
+        let loops = 10000;
+        let samples = 1024;
+
+        let mut overall = Variance::new();
+        let mut deltas = Vec::with_capacity(samples);
+        deltas.reserve(samples);
+
+        for _ in 0..loops {
+            deltas.clear();
+            for _ in 0..samples {
+                let rstart = reference.now();
+                let rend = reference.now();
+
+                deltas.push(rend - rstart);
+            }
+
+            let local = deltas.iter().map(|i| *i as f64).collect::<Variance>();
+            overall.merge(&local);
+        }
+
+        println!("mean={} error={}", overall.mean(), overall.error());
+        assert!(true);
+    }
 }
