@@ -10,9 +10,9 @@ use std::time::Duration;
 ///
 /// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to reference time.
 ///
-/// Unlike the stdlib `Instant`, this type has a meaningful difference:
-/// - It is intended to be opaque, but the internal value _can_ be accessed.  There are no
-/// guarantees here and depending on this value directly is caveat emptor.
+/// Unlike the stdlib `Instant`, this type has a meaningful difference: it is intended to be opaque, but the
+/// internal value _can_ be accessed.  There are no guarantees here and depending on this value directly is
+/// proceeding at your own risk. ⚠️
 ///
 /// An `Instant` is 8 bytes.
 #[derive(Clone, Copy, PartialEq, Eq)]

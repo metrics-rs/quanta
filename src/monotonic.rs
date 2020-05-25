@@ -3,15 +3,6 @@ use crate::ClockSource;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use mach::mach_time::{mach_continuous_time, mach_timebase_info};
 
-#[cfg(all(
-    not(target_os = "macos"),
-    not(target_os = "ios"),
-    not(target_os = "windows")
-))]
-#[derive(Debug, Clone)]
-pub struct Monotonic;
-
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 #[derive(Debug, Clone)]
 pub struct Monotonic {
     factor: u64,
@@ -24,7 +15,7 @@ pub struct Monotonic {
 ))]
 impl Monotonic {
     pub fn new() -> Monotonic {
-        Monotonic {}
+        Monotonic { factor: 0 }
     }
 }
 

@@ -1,6 +1,6 @@
 //! Performant cross-platform timing with goodies.
 //!
-//! `quanta` provides a simple ans fast API for measuring the current time and the duration between
+//! `quanta` provides a simple and fast API for measuring the current time and the duration between
 //! events.  It does this by providing a thin layer on top of native OS timing functions, or, if
 //! available, using the Time Stamp Counter feature found on modern CPUs.
 //!
@@ -8,34 +8,44 @@
 //! Internally, `quanta` maintains the concept of two potential clock sources: a reference clock and
 //! a source clock.
 //!
-//! The reference clock is provided by the OS: using the native timing facilities provided, we assume
-//! that we can always depend on the OS as a backstop.  The source clock, if available, is a thin
-//! layer over accessing the Time Stamp Counter directly.  `quanta` will utilize the source clock
-//! when it determines it to be possible.
+//! The reference clock is provided by the OS, and always available.  It is equivalent to what is
+//! provided by the standard library in terms of the underlying system calls being made.  As it
+//! uses the native timing facilities provided by the operating system, we ultimately depend on the
+//! OS itself to give us a stable and correct value.
 //!
-//! Depending on the underlying processor(s), `quanta` will figure out the most accurate/efficient
-//! way to calibrate the source clock to the reference clock in order to provide measurements scaled
-//! to wall clock time.  Details on this behavior are detailed below.
+//! The source clock is a potential clock source based on the Time Stamp Counter feature found on
+//! modern CPUs.  If the TSC feature is not present or is not reliable enough, `quanta` will
+//! transparently utilize the reference clock instead.
+//!
+//! Depending on the underlying processor(s) in the system, `quanta` will figure out the most
+//! accurate/efficient way to calibrate the source clock to the reference clock in order to provide
+//! measurements scaled to wall clock time.
+//!
+//! Details on TSC support, and calibration, are detailed below.
 //!
 //! # Features
 //! Beyond simply taking measurements of the current time, `quanta` provides features for more easily
 //! working with clocks, as well as being able to enhance performance further:
-//! - ability to mock the clock
-//! - ability to provide extremely fast granular time
+//! - `Clock` can be mocked for testing
+//! - globally accessible "recent" time with amortized overhead
 //!
-//! Mockability means that for areas of your code that hold on to a `Clock` reference, one can be
-//! passed in that is mocked, allowing you to control the passage of time, which is highly useful
-//! for testing time-based code.
+//! For any code that uses a `Clock`, a mocked version can be substituted.  This allows for
+//! application authors to control the time in tests, which allows simulating not only the normal
+//! passage of time but provides the ability to warp time forwards and backwards in order to test
+//! corner cases in logic, etc.  Creating a mocked clock can be acheived with [`Clock::mock`], and
+//! [`Mock`] contains more details on mock usage.
 //!
 //! `quanta` also provides a "recent" time feature, which allows a slightly-delayed version of time
-//! to be provided to callers, trading off accuracy for speed of access.  An upkeep thread is
-//! spawned, which is responsible for taking measurements and updating the global recent time.
-//! Callers then can access the cached value by calling `Clock::recent`.  This interface can be up
-//! to 2x faster than the highest performance configuration for a regular `Clock`, but is limited
-//! in accuracy by the update interval of the upkeep thread.
+//! to be provided to callers, trading accuracy for speed of access.  An upkeep thread is spawned,
+//! which is responsible for taking measurements and updating the global recent time. Callers then
+//! can access the cached value by calling `Clock::recent`.  This interface can be 4-10x faster
+//! than directly calling `Clock::now`, even when TSC support is available.  As the upkeep thread
+//! is the only code updating the recent time, the accuracy of the value given to callers is
+//! limited by how often the upkeep thread updates the time, thus the trade off between accuracy
+//! and speed of access.
 //!
 //! # Platform Support
-//! `quanta` carries support for most major operating systems out of the box:
+//! At a high level, `quanta` carries support for most major operating systems out of the box:
 //! - Windows ([QueryPerformanceCounter])
 //! - macOS/OS X/iOS ([mach_continuous_time])
 //! - Linux/*BSD/Solaris ([clock_gettime])
@@ -44,39 +54,46 @@
 //! Stamp Counter as a clocksource is more subtle, and explained below.
 //!
 //! # Time Stamp Counter support
-//! Accessing the TSC requires being on the x86/x86_64 architecture, with access to SSE2.
-//! Additionally, the processor must support the nonstop, or invariant, mode of TSC.  This ensures
-//! that the TSC ticks at a constant rate which can be easily scaled.  As we aren't in kernel mode,
-//! `quanta` has no way of tracking or understanding the subtle changes in power states which might
-//! otherwise skew the TSC values being read from the processor, and thus can't meaningfully
-//! account for said changes.
+//! Accessing the TSC requires being on the x86_64 architecture, with access to SSE2. Additionally,
+//! the processor must support either constant or nonstop/invariant TSC.  This ensures that the TSC
+//! ticks at a constant rate which can be easily scaled.
 //!
-//! We check the processor directly for invariant TSC support at runtime, but here are some rough
-//! guidelines of what processor generations/models you can expect to have it:
+//! A caveat is that "constant" TSC doesn't account for all possible power states (levels of power
+//! down or sleep that a CPU can enter to save power under light load, etc) and so a constant TSC
+//! can lead to drift in measurements over time, after they've been scaled to reference time.
+//!
+//! This is a limitation of the TSC mode, as well as the nature of `quanta` not being able to know,
+//! as the OS would, when a power state transition has happened, and thus compensate with a
+//! recalibration. Nonstop/invariant TSC does not have this limitation and is stable over long
+//! periods of time.
+//!
+//! Roughly speaking, the following list contains the beginning model/generation of processors
+//! where you should be able to expect having invariant TSC support:
 //! - Intel Nehalem and newer for server-grade
 //! - Intel Skylake and newer for desktop-grade
-//! - VIA Centaur Nano and newer(circumstancial evidence here)
+//! - VIA Centaur Nano and newer (circumstantial evidence here)
 //! - AMD Phenom and newer
 //!
-//! This list is, again, a very rough guideline of what to likely expect in the real world.
-//! Ultimately, `quanta` will definitely query CPUID information to determine if the processor has
-//! the required features to use the TSC.
+//! Ultimately, `quanta` will query CPUID information to determine if the processor has the
+//! required features to use the TSC.
 //!
 //! # Calibration
-//! As the Time Stamp Counter doesn't necessarily tick at reference scale (one tick being one
-//! nanosecond), we have to apply a scaling factor to make it usable in the reference time scale.
+//! As the TSC doesn't necessarily tick at reference scale -- i.e. one tick isn't always one
+//! nanosecond -- we have to apply a scaling factor when converting from source to reference time
+//! scale.  We acquire this scaling factor by querying the processor or calibrating our source
+//! clock to the reference clock.
 //!
-//! In some cases, on newer processors, the frequency of the TSC can be queried directly from the
-//! processor.  In other cases, `quanta` will have to run its own calibration before the clock is
-//! ready to be used: taking measurements between the reference and source clocks to determine the
-//! scaling factor.
+//! In some cases, on newer processors, the frequency of the TSC can be queried directly, providing
+//! a fixed scaling factor with no further calibration necessary.  In other cases, `quanta` will
+//! have to run its own calibration before the clock is ready to be used: repeatedly taking
+//! measurements from both the reference and source clocks until a stable scaling factor has been
+//! established.
 //!
-//! This calibration is stored globally and reused for subsequent clocks.  However, it will execute
-//! blocking code until the calibration is complete, which will manifest as your application
-//! potentially taking extra time during startup, etc.
-//!
-//! This is an unfortuate but required part of establishing the reference time scaling factor when
-//! the frequency isn't able to be queried directly.
+//! This calibration is stored globally and reused.  However, the first `Clock` that is created in
+//! an application will block for a small period of time as it runs this calibration loop.  The
+//! time spent in the calibration loop is limited to 200ms overall.  In practice, `quanta` will
+//! reach a stable calibration quickly (usually 10-20ms, if not less) and so this deadline is
+//! unlikely to be reached.
 //!
 //! # Caveats
 //! Utilizing the TSC can be a tricky affair, and so here is a list of caveats that may or may not
@@ -498,33 +515,17 @@ fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
 }
 
 #[inline]
-pub fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
-    // This is a modified decomposed muldiv.  We only support a denominator that is a power of two,
-    // and we use pure bitwise shifting and masking to replace the normal modulo and division.
-    //
-    // `denom` is actually the number of bits to shift by, _not_ the integer value of the
-    // denominator.
+fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
+    // Modified muldiv routine where the denominator has to be a power of two. `denom` is expected
+    // to be the number of bits to shift, not the actual decimal value.
     let q = value.checked_shr(denom).unwrap_or(0);
-    let r = value & !(1 << denom);
-    q * numer + ((r * numer).checked_shr(denom).unwrap_or(0))
+    let r = value & ((1 << denom) - 1);
+    q * numer + (r * numer).checked_shr(denom).unwrap_or(0)
 }
 
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 unsafe fn has_constant_or_better_tsc() -> bool {
-    // Ultimately what we're looking to do here is narrow down to make sure we're using a CPU that
-    // can present a constant or invariant TSC.
-    //
-    // If it only has a constant TSC, we can use the slower calibration loop and essentially throw
-    // up "caveat emptor" to the user.  We'll protect them from time warped readings, but it just
-    // means they might get more bad readings or skew over time.  Such is life.  It's documented.
-    //
-    // If they have nonstop TSC, then there's a good chance that the processor has a known speed
-    // mapping or it has native support for extracting the TSC frequency.
-    //
-    // Either way, all we care about here is making sure that constant (or better) TSC is
-    // available to us.
-    //
     // All of this special handling for CPU manufacturers, specific family/model combinations, etc,
     // is derived from the Linux kernel, master branch, as of 2020-05-19.
 
@@ -534,13 +535,11 @@ unsafe fn has_constant_or_better_tsc() -> bool {
     let cpu_mfg = read_cpuid_mfg();
     match cpu_mfg.as_str() {
         "GenuineIntel" => {
-            // All Intel processors from the Core microarchitecture and on should at least have
-            // constant TSC, which should be good enough for us to calibrate against.
+            // All Intel processors from the Core microarchitecture and on.
             if read_cpuid_family_model() >= 0x60E {
                 return true;
             }
         }
-        // No special overrides for AMD processors... yet?
         "AuthenticAMD" => {}
         "CentaurHauls" => {
             // VIA Nano and above should at least have constant TSC.
@@ -587,7 +586,7 @@ unsafe fn read_cpuid_nonstop_tsc() -> bool {
     // management information" that contains whether or not nonstop TSC is supported.
     let (highest_leaf, _) = __get_cpuid_max(EXTENDED_LEAVES);
     if highest_leaf < APMI_LEAF {
-        println!("cpuid level to low to read InvariantTSC: {}", highest_leaf);
+        println!("cpuid level too low to read InvariantTSC: {}", highest_leaf);
         return false;
     }
 
@@ -679,7 +678,7 @@ unsafe fn read_cpuid_family_model() -> u32 {
     // [8 bits - family] [4 bits - extended model] [4 bits - model]
     //
     // Thus, for Intel Skylake (family=6, extended model=5, model=5), our return value would be
-    // 0x0655;
+    // 0x0655
     let result = __cpuid(0x01);
     let family = result.eax & (0xF << 8);
     let extended_model = result.eax & (0xF << 16);
@@ -700,7 +699,7 @@ fn has_multiple_sockets() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{Clock, ClockSource, Monotonic};
+    use super::{mul_div_po2_u64, Clock, ClockSource, Monotonic};
     use average::{Merge, Variance};
 
     #[test]
@@ -768,8 +767,14 @@ mod tests {
             overall.merge(&local);
         }
 
-        println!("mean={} error={}", overall.mean(), overall.error());
-        assert!(true);
+        println!(
+            "reference/source delta: mean={} error={}",
+            overall.mean(),
+            overall.error()
+        );
+
+        // If things are out of sync more than 1000ns, something is likely scaled wrong.
+        assert!(overall.mean() < 1000.0);
     }
 
     #[test]
@@ -796,7 +801,76 @@ mod tests {
             overall.merge(&local);
         }
 
-        println!("mean={} error={}", overall.mean(), overall.error());
-        assert!(true);
+        println!(
+            "reference/reference inter-call delta: mean={} error={}",
+            overall.mean(),
+            overall.error()
+        );
+
+        // If things are out of sync more than 1000ns, then I dunno, because our reference is
+        // supposed to be reliable. 😬
+        assert!(overall.mean() < 1000.0);
+    }
+
+    #[test]
+    fn test_mul_div_po2_u64() {
+        // Invariant to make sure our muldiv reference is, itself, working correctly.
+        assert_eq!(
+            mul_div_u64(1_000_000_000_001, 1_000_000_000, 1_000_000),
+            1_000_000_000_001_000
+        );
+
+        // Test cases generated at random, just to fit the "denominator is a power of two"
+        // requirement.
+        let cases: Vec<(u64, u64, u64)> = vec![
+            (
+                2619711999600556324,
+                1076209529631192701,
+                1152921504606846976,
+            ),
+            (962036257684264096, 2365524118529639389, 9223372036854775808),
+            (
+                8438539151187836122,
+                2592463748239318719,
+                4611686018427387904,
+            ),
+            (
+                2802018486233477862,
+                1042190738548073616,
+                2305843009213693952,
+            ),
+            (5102625975101878063, 28506815724653507, 288230376151711744),
+            (1122697675702469819, 20407176414356132, 144115188075855872),
+            (8011478979920699847, 422944221574912424, 576460752303423488),
+            (365906451007577144, 19614562331068985, 72057594037927936),
+            (5135656620765581057, 1710418123704727, 18014398509481984),
+            (570889111331337000, 3439667537598434, 9007199254740992),
+            (705136156965859988, 28339701398730151, 36028797018963968),
+            (8759344933148701462, 4258070704507859, 4503599627370496),
+            (1850243696123607816, 343855849871913, 562949953421312),
+            (5768209346030234121, 284587028100258, 1125899906842624),
+            (4690790109153487782, 40735639344571, 140737488355328),
+            (526970394522155303, 475390439639092, 2251799813685248),
+            (2119069810911627122, 119565772913702, 281474976710656),
+            (6049196687424320246, 52861343223284, 70368744177664),
+            (4335973643624548881, 28717337725919, 35184372088832),
+            (6700536762772309716, 222613019239, 17592186044416),
+            (3533736120084760556, 4205040885373, 8796093022208),
+        ];
+
+        for (base, num, denom) in cases {
+            let denom_bits = denom.trailing_zeros();
+            assert_eq!(
+                mul_div_u64(base, num, denom),
+                mul_div_po2_u64(base, num, denom_bits)
+            );
+        }
+    }
+
+    // Copied from Rust source, used as our reference.
+    fn mul_div_u64(value: u64, numer: u64, denom: u64) -> u64 {
+        let q = value / denom;
+        let r = value % denom;
+        q * numer + r * numer / denom
     }
 }
