@@ -518,9 +518,10 @@ fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
 fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
     // Modified muldiv routine where the denominator has to be a power of two. `denom` is expected
     // to be the number of bits to shift, not the actual decimal value.
-    let q = value.checked_shr(denom).unwrap_or(0);
-    let r = value & ((1 << denom) - 1);
-    q * numer + (r * numer).checked_shr(denom).unwrap_or(0)
+    let mut v: u128 = value as u128;
+    v *= numer as u128;
+    v >>= denom;
+    v as u64
 }
 
 #[allow(dead_code)]
@@ -699,7 +700,7 @@ fn has_multiple_sockets() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{mul_div_po2_u64, Clock, ClockSource, Monotonic};
+    use super::{Clock, ClockSource, Monotonic};
     use average::{Merge, Variance};
 
     #[test]
@@ -810,67 +811,5 @@ mod tests {
         // If things are out of sync more than 1000ns, then I dunno, because our reference is
         // supposed to be reliable. 😬
         assert!(overall.mean() < 1000.0);
-    }
-
-    #[test]
-    fn test_mul_div_po2_u64() {
-        // Invariant to make sure our muldiv reference is, itself, working correctly.
-        assert_eq!(
-            mul_div_u64(1_000_000_000_001, 1_000_000_000, 1_000_000),
-            1_000_000_000_001_000
-        );
-
-        // Test cases generated at random, just to fit the "denominator is a power of two"
-        // requirement.
-        let cases: Vec<(u64, u64, u64)> = vec![
-            (
-                2619711999600556324,
-                1076209529631192701,
-                1152921504606846976,
-            ),
-            (962036257684264096, 2365524118529639389, 9223372036854775808),
-            (
-                8438539151187836122,
-                2592463748239318719,
-                4611686018427387904,
-            ),
-            (
-                2802018486233477862,
-                1042190738548073616,
-                2305843009213693952,
-            ),
-            (5102625975101878063, 28506815724653507, 288230376151711744),
-            (1122697675702469819, 20407176414356132, 144115188075855872),
-            (8011478979920699847, 422944221574912424, 576460752303423488),
-            (365906451007577144, 19614562331068985, 72057594037927936),
-            (5135656620765581057, 1710418123704727, 18014398509481984),
-            (570889111331337000, 3439667537598434, 9007199254740992),
-            (705136156965859988, 28339701398730151, 36028797018963968),
-            (8759344933148701462, 4258070704507859, 4503599627370496),
-            (1850243696123607816, 343855849871913, 562949953421312),
-            (5768209346030234121, 284587028100258, 1125899906842624),
-            (4690790109153487782, 40735639344571, 140737488355328),
-            (526970394522155303, 475390439639092, 2251799813685248),
-            (2119069810911627122, 119565772913702, 281474976710656),
-            (6049196687424320246, 52861343223284, 70368744177664),
-            (4335973643624548881, 28717337725919, 35184372088832),
-            (6700536762772309716, 222613019239, 17592186044416),
-            (3533736120084760556, 4205040885373, 8796093022208),
-        ];
-
-        for (base, num, denom) in cases {
-            let denom_bits = denom.trailing_zeros();
-            assert_eq!(
-                mul_div_u64(base, num, denom),
-                mul_div_po2_u64(base, num, denom_bits)
-            );
-        }
-    }
-
-    // Copied from Rust source, used as our reference.
-    fn mul_div_u64(value: u64, numer: u64, denom: u64) -> u64 {
-        let q = value / denom;
-        let r = value % denom;
-        q * numer + r * numer / denom
     }
 }
