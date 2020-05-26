@@ -597,77 +597,6 @@ unsafe fn read_cpuid_nonstop_tsc() -> bool {
     nonstop
 }
 
-unsafe fn read_cpuid_intel_tsc_frequency() -> Option<u64> {
-    use core::arch::x86_64::{__cpuid, __get_cpuid_max};
-
-    // Only available on Intel.
-    let cpu_mfg = read_cpuid_mfg();
-    if cpu_mfg != "GenuineIntel" {
-        println!("not intel");
-        return None;
-    }
-
-    // Make sure the given leaf we need to check exists.
-    let (highest_leaf, _) = __get_cpuid_max(BASE_LEAVES);
-    if highest_leaf < 0x15 {
-        println!("0x15 leaf not available");
-        return None;
-    }
-
-    // Time Stamp Counter and Nominal Core Crystal Clock Information Leaf (0x15H)
-    //
-    // We need the numerator (EBX) and the denominator (EAX) to both be present otherwise we can't
-    // do anything, but the core crystal frequency (ECX) may not be present.
-    // it another way if it's not available here.
-    let result = __cpuid(0x15);
-    if result.ebx == 0 || result.eax == 0 {
-        println!("no numerator/denominator available");
-        return None;
-    }
-
-    let numerator = result.ebx as u64;
-    let denominator = result.eax as u64;
-
-    // If we didn't get the core crystal frequency from 0x15, try mapping it to known frequencies.
-    // (Intel SDM, Vol. 3B, 18-137, section 18.7.3, table 18-85, "Nominal Core Crystal Clock Frequency")
-    let mut crystal_hz = result.ecx as u64;
-    if crystal_hz == 0 {
-        let mapped_crystal_hz = match read_cpuid_family_model() {
-            // Intel Xeon Processor Scalable Family (Skylake, Cascade Lake, Cooper Lake)
-            0x655 => 25_000_000,
-            // 6th generation/7th generation processors (Skylake, Kaby Lake)
-            0x64E | 0x65E | 0x68E | 0x69E => 24_000_000,
-            // 2nd, 3rd, 4th, and 5th generation processors (Sandy Bridge, Ivy Bridge, Haswell, Broadwell)
-            0x62A | 0x63A | 0x63C | 0x645 | 0x646 | 0x647 | 0x63D | 0x62D | 0x63E | 0x63F
-            | 0x656 | 0x64F => {
-                // We multiply by the reciprocal of the core crystal clock ratio because we're
-                // returning the TSC frequency directly, so when we go to calculate the ratio, we
-                // want to cancel out the normal ratio math.
-                if highest_leaf < 0x16 {
-                    println!("0x16 leaf not available");
-                    0
-                } else {
-                    0
-                }
-            }
-            // Whatever it is, we don't handle it yet.
-            _ => 0,
-        };
-
-        if mapped_crystal_hz != 0 {
-            crystal_hz = mapped_crystal_hz;
-        }
-    }
-
-    // We failed to get the crystal frequency or processor base frequency, so we can't calculate
-    // the ratio.  Womp.  Bail out.
-    if crystal_hz == 0 {
-        return None;
-    }
-
-    Some(crystal_hz * (numerator / denominator))
-}
-
 unsafe fn read_cpuid_family_model() -> u32 {
     use core::arch::x86_64::__cpuid;
 
@@ -686,12 +615,6 @@ unsafe fn read_cpuid_family_model() -> u32 {
     let model = result.eax & (0xF << 4);
 
     family + extended_model + model
-}
-
-unsafe fn read_msr_intel_platform_info_bus_frequency() -> Option<u64> {
-    // TODO: implement me! literally only doable on linux, though, via /dev/cpu, which requires
-    // root so this may be a crapshoot in terms of providing a solid fallback for older CPUs
-    None
 }
 
 fn has_multiple_sockets() -> bool {
