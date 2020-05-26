@@ -112,6 +112,7 @@ use std::sync::{
 use std::time::Duration;
 
 use once_cell::sync::OnceCell;
+use raw_cpuid::CpuId;
 
 mod monotonic;
 use self::monotonic::Monotonic;
@@ -137,10 +138,6 @@ const MAXIMUM_CAL_ERROR_NS: u64 = 10;
 
 // Don't run the calibration loop for longer than 200ms of wall time.
 const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
-
-const BASE_LEAVES: u32 = 0x0;
-const EXTENDED_LEAVES: u32 = 0x8000_0000;
-const APMI_LEAF: u32 = 0x8000_0007;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -197,23 +194,15 @@ impl Calibration {
         }
     }
 
-    fn calibrate<R, S>(&mut self, reference: &R, source: &S)
-    where
-        R: ClockSource,
-        S: ClockSource,
-    {
+    fn calibrate(&mut self, reference: &Monotonic, source: &Counter) {
+        // future improvement: read the TSC frequency directly with something like the
+        // code in this PR: https://github.com/hermitcore/uhyve/pull/24
+
         let mut variance = Variance::default();
         let deadline = reference.now() + MAXIMUM_CAL_TIME.as_nanos() as u64;
 
         self.ref_time = reference.now();
         self.src_time = source.now();
-
-        println!(
-            "fancy2: start={} deadline={} ({})",
-            self.ref_time,
-            deadline,
-            MAXIMUM_CAL_TIME.as_nanos()
-        );
 
         let loop_delta = 1000;
         loop {
@@ -229,14 +218,6 @@ impl Calibration {
             // deadline, we should still have run a sufficient number of rounds to get an accurate
             // calibration.
             if last >= deadline {
-                println!("fancy2: hit cal loop deadline");
-
-                let mean = variance.mean().abs();
-                let mean_error = variance.mean_error().abs();
-                println!(
-                    "fancy2: stats at deadline: mean={} error={}, max_error={}",
-                    mean, mean_error, MAXIMUM_CAL_ERROR_NS
-                );
                 break;
             }
 
@@ -248,39 +229,25 @@ impl Calibration {
             let s_time = scale_src_to_ref(s_raw, &self);
             variance.add(s_time as f64 - r_time as f64);
 
+            // If we've collected enough samples, check what the mean and mean error are.  If we're
+            // already within the target bounds, we can break out of the calibration loop early.
             if variance.has_significant_result() {
                 let mean = variance.mean().abs();
                 let mean_error = variance.mean_error().abs();
-                let mean_with_error = variance.mean_with_error();
+                let mwe = variance.mean_with_error();
                 let samples = variance.samples();
 
                 if samples > MINIMUM_CAL_ROUNDS
-                    && mean_with_error < MAXIMUM_CAL_ERROR_NS
+                    && mwe < MAXIMUM_CAL_ERROR_NS
                     && mean_error / mean <= 1.0
                 {
-                    //&& self.scale_factor < 8000 {
-                    println!(
-                        "fancy2: reached error threshold (mean={} error={}, max_error={})",
-                        mean, mean_error, MAXIMUM_CAL_ERROR_NS
-                    );
-                    println!(
-                        "fancy2: cal config: num={} denom={}",
-                        self.scale_factor, self.scale_shift
-                    );
                     break;
                 }
             }
         }
-
-        let delta = reference.now() - self.ref_time;
-        println!("fancy2: completed in {}ns", delta);
     }
 
-    fn adjust_cal_ratio<R, S>(&mut self, reference: &R, source: &S)
-    where
-        R: ClockSource,
-        S: ClockSource,
-    {
+    fn adjust_cal_ratio(&mut self, reference: &Monotonic, source: &Counter) {
         // Overall algorithm: measure the reference and source clock deltas, which leaves us witrh
         // a fraction of ref_d/src_d representing our source-to-reference clock scaling ratio.
         //
@@ -327,7 +294,7 @@ impl Clock {
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
         let reference = Monotonic::new();
-        let constant_tsc = unsafe { has_constant_or_better_tsc() };
+        let constant_tsc = has_constant_or_better_tsc();
         let inner = if constant_tsc {
             let source = Counter::new();
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
@@ -467,8 +434,8 @@ impl Clock {
 
         let raw_delta = end.wrapping_sub(start);
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => {
-                mul_div_po2_u64(raw_delta, calibration.scale_factor, calibration.scale_shift)
+            ClockType::Counter(_, _, _, cal) => {
+                mul_div_po2_u64(raw_delta, cal.scale_factor, cal.scale_shift)
             }
             _ => raw_delta,
         };
@@ -526,7 +493,7 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
-unsafe fn has_constant_or_better_tsc() -> bool {
+fn has_constant_or_better_tsc() -> bool {
     // All of this special handling for CPU manufacturers, specific family/model combinations, etc,
     // is derived from the Linux kernel, master branch, as of 2020-05-19.
 
@@ -552,8 +519,8 @@ unsafe fn has_constant_or_better_tsc() -> bool {
         _ => return false,
     }
 
-    // TODO: if vendor isn't intel, and num cpus (not cores) > 1, good chance we won't be synced
-    // (kernel/tsc.c:1214) looks like lscpu can detect socket count, can we emulate it?
+    // If the vendor isn't Intel, and we have multiple sockets, it's unclear if the TSC would ever
+    // be meaningfully synchronized so let's not fall into any traps there.
     if has_multiple_sockets() && cpu_mfg != "GenuineIntel" {
         return false;
     }
@@ -564,60 +531,39 @@ unsafe fn has_constant_or_better_tsc() -> bool {
 
 #[allow(dead_code)]
 #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
-unsafe fn has_constant_or_better_tsc() -> bool {
+fn has_constant_or_better_tsc() -> bool {
     false
 }
 
-unsafe fn read_cpuid_mfg() -> String {
-    use core::arch::x86_64::__cpuid;
-
-    let result = __cpuid(0);
-    let mut buf = [0u8; 12];
-    buf[0..4].copy_from_slice(&result.ebx.to_le_bytes()[..]);
-    buf[4..8].copy_from_slice(&result.edx.to_le_bytes()[..]);
-    buf[8..12].copy_from_slice(&result.ecx.to_le_bytes()[..]);
-
-    String::from_utf8_unchecked(Vec::from(&buf[..]))
+fn read_cpuid_mfg() -> String {
+    let cpuid = CpuId::new();
+    cpuid
+        .get_vendor_info()
+        .map_or_else(|| String::new(), |vi| vi.as_string().to_owned())
 }
 
-unsafe fn read_cpuid_nonstop_tsc() -> bool {
-    use core::arch::x86_64::{__cpuid, __get_cpuid_max};
-
-    // Make sure the given leaf we need to check exists. 0x8000_0007 is the "advanced power
-    // management information" that contains whether or not nonstop TSC is supported.
-    let (highest_leaf, _) = __get_cpuid_max(EXTENDED_LEAVES);
-    if highest_leaf < APMI_LEAF {
-        println!("cpuid level too low to read InvariantTSC: {}", highest_leaf);
-        return false;
-    }
-
-    let result = __cpuid(APMI_LEAF);
-    let nonstop = (result.edx & (1 << 8)) != 0;
-    println!("nonstop tsc: {}", nonstop);
-    nonstop
+fn read_cpuid_nonstop_tsc() -> bool {
+    let cpuid = CpuId::new();
+    cpuid
+        .get_extended_function_info()
+        .map_or(false, |efi| efi.has_invariant_tsc())
 }
 
-unsafe fn read_cpuid_family_model() -> u32 {
-    use core::arch::x86_64::__cpuid;
-
-    // Intel doesn't use extended family as far as I can tell, so basically we compute the
-    // family/model identifier as:
-    //
-    // Nobody seems to use extended family, so we munge together the following fields:
-    //
-    // [8 bits - family] [4 bits - extended model] [4 bits - model]
-    //
-    // Thus, for Intel Skylake (family=6, extended model=5, model=5), our return value would be
-    // 0x0655
-    let result = __cpuid(0x01);
-    let family = result.eax & (0xF << 8);
-    let extended_model = result.eax & (0xF << 16);
-    let model = result.eax & (0xF << 4);
-
-    family + extended_model + model
+fn read_cpuid_family_model() -> u32 {
+    let cpuid = CpuId::new();
+    cpuid.get_feature_info().map_or(0, |fi| {
+        (fi.family_id() as u32) << 8 | (fi.extended_model_id() as u32) << 4 | fi.model_id() as u32
+    })
 }
 
 fn has_multiple_sockets() -> bool {
+    // TODO: implement me.
+    //
+    // the way lscpu does it could be our linux-based approach, and for windows, there's
+    // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlogicalprocessorinformation
+    // which shows how to count the packages
+    //
+    // not sure about macOS/*BSD/etc
     true
 }
 
