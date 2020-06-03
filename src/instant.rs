@@ -8,7 +8,8 @@ use std::time::Duration;
 
 /// A point-in-time wall-clock measurement.
 ///
-/// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to reference time.
+/// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to reference time,
+/// which is relative to the Unix epoch of 1970-01-01T00:00:00Z.
 ///
 /// Unlike the stdlib `Instant`, this type has a meaningful difference: it is intended to be opaque, but the
 /// internal value _can_ be accessed.  There are no guarantees here and depending on this value directly is
@@ -174,5 +175,26 @@ impl fmt::Debug for Instant {
 impl AsNanoseconds for Instant {
     fn as_nanos(&self) -> u64 {
         self.0
+    }
+}
+
+#[cfg(feature = "prost")]
+impl Into<prost_types::Timestamp> for Instant {
+    fn into(self) -> prost_types::Timestamp {
+        let dur = Duration::from_nanos(self.0);
+        let secs = if dur.as_secs() > i64::MAX as u64 {
+            i64::MAX
+        } else {
+            dur.as_secs() as i64
+        };
+        let nsecs = if dur.subsec_nanos() > i32::MAX as u32 {
+            i32::MAX
+        } else {
+            dur.subsec_nanos() as i32
+        };
+        prost_types::Timestamp {
+            seconds: secs,
+            nanos: nsecs,
+        }
     }
 }

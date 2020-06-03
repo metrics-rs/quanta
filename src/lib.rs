@@ -43,6 +43,14 @@
 //! is the only code updating the recent time, the accuracy of the value given to callers is
 //! limited by how often the upkeep thread updates the time, thus the trade off between accuracy
 //! and speed of access.
+//! 
+//! # Feature Flags
+//! `quanta` comes with multiple feature flags that enable convenient conversions to time types in
+//! other popular crates:
+//! - `metrics` - provides an implementation of [`AsNanoseconds`][metrics_core_asnanoseconds] from
+//! `metrics-core`
+//! - `prost` - provides an implementation into [`Timestamp`][prost_types_timestamp] from
+//! `prost_types`
 //!
 //! # Platform Support
 //! At a high level, `quanta` carries support for most major operating systems out of the box:
@@ -105,6 +113,8 @@
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
 //! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
+//! [metrics_core_asnanoseconds]: https://docs.rs/metrics-core/0.5.2/metrics_core/trait.AsNanoseconds.html
+//! [prost_types_timestamp]: https://docs.rs/prost-types/0.6.1/prost_types/struct.Timestamp.html
 use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
