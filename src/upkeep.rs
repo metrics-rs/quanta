@@ -71,7 +71,7 @@ impl fmt::Display for Error {
         match self {
             Error::UpkeepRunning => write!(f, "upkeep thread already running"),
             Error::FailedToSpawnUpkeepThread(e) => {
-                write!(f, "failed to spanw upkeep thread: {}", e)
+                write!(f, "failed to spawn upkeep thread: {}", e)
             }
         }
     }

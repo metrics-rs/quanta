@@ -133,7 +133,7 @@ pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
 pub use self::instant::Instant;
 mod upkeep;
-pub use self::upkeep::{Handle, Upkeep};
+pub use self::upkeep::{Handle, Upkeep, Error};
 mod stats;
 use self::stats::Variance;
 
