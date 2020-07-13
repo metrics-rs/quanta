@@ -1,9 +1,0 @@
-trigger: ["master"]
-pr: ["master"]
-
-jobs:
-- template: ci/azure-rustfmt.yml
-- template: ci/azure-test-stable.yml
-- template: ci/azure-test-minimum.yaml
-- template: ci/azure-test-nightly.yml
-- template: ci/azure-bench-stable.yml
