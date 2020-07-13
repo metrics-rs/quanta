@@ -37,7 +37,7 @@ The API documentation of this library can be found at [docs.rs/quanta](https://d
 
 ## platform / architecture support
 
-For platforms, we have tier 1 support for Linux, Windows, and macOS/iOS.  Platforms such as Solaris or various BSDs has tier 2.5 support: `quanta` should work on them by virtue of depending on `libc`, but we don't test or build on these platforms as all.
+For platforms, we have tier 1 support for Linux, Windows, and macOS/iOS.  Platforms such as Solaris or various BSDs have tier 2.5 support: `quanta` should work on them by virtue of depending on `libc`, but we don't test or build on these platforms as all.
 
 Architecture-wise, x86/x86-64 and SSE2 are required for the optimized TSC codepath.  This is handled transparently via compile-time target features, so you must build with the appropriate compiler flags to specify the CPU features where your binary will run, as runtime detection is not supported.
 
