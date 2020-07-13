@@ -43,7 +43,7 @@ Architecture-wise, x86/x86-64 and SSE2 are required for the optimized TSC codepa
 
 ## performance
 
-Accessing the TSC on a modern x86 processor has an extremely low overhead of roughly ~11ns, and `quanta` provides the thinnest possible layer over this.  Using the native time facilities, such as `clock_gettime(CLOCK_MONOTONIC)` on Linux, you may expect to see closer to 17-18ns of overhead.
+Accessing the TSC on a modern x86 processor can have an overhead of as little as ~11ns, and `quanta` provides the thinnest possible layer over this.  Using the native time facilities, such as `clock_gettime(CLOCK_MONOTONIC)` on Linux, you may expect to see closer to 17-18ns of overhead.
 
 Measurements have not been taken for non-x86-based architectures/platforms.
 
