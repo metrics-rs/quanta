@@ -43,7 +43,7 @@
 //! is the only code updating the recent time, the accuracy of the value given to callers is
 //! limited by how often the upkeep thread updates the time, thus the trade off between accuracy
 //! and speed of access.
-//! 
+//!
 //! # Feature Flags
 //! `quanta` comes with multiple feature flags that enable convenient conversions to time types in
 //! other popular crates:
@@ -115,10 +115,8 @@
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [metrics_core_asnanoseconds]: https://docs.rs/metrics-core/0.5.2/metrics_core/trait.AsNanoseconds.html
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.6.1/prost_types/struct.Timestamp.html
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+use atomic_shim::AtomicU64;
+use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
 
 use once_cell::sync::OnceCell;
@@ -133,7 +131,7 @@ pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
 pub use self::instant::Instant;
 mod upkeep;
-pub use self::upkeep::{Handle, Upkeep, Error};
+pub use self::upkeep::{Error, Handle, Upkeep};
 mod stats;
 use self::stats::Variance;
 
