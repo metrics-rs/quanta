@@ -48,9 +48,10 @@
 #![cfg_attr(feature = "tsc", feature(asm))]
 
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
+    atomic::Ordering,
     Arc,
 };
+use atomic_shim::AtomicU64;
 
 mod monotonic;
 use self::monotonic::Monotonic;

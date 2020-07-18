@@ -1,10 +1,8 @@
 #![allow(dead_code)]
 use crate::ClockSource;
+use atomic_shim::AtomicU64;
 use std::{
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
+    sync::{atomic::Ordering, Arc},
     time::Duration,
 };
 
