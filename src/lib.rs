@@ -135,7 +135,20 @@ pub use self::upkeep::{Error, Handle, Upkeep};
 mod stats;
 use self::stats::Variance;
 
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+mod atomic_compat {
+    use super::AtomicU64;
+    use ctor::ctor;
+
+    #[ctor]
+    pub static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+}
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+use self::atomic_compat::GLOBAL_RECENT;
+
+#[cfg(not(any(target_arch = "mips", target_arch = "powerpc")))]
 static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+
 static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
 // Run 100 rounds of calibration before we start actually seeing what the numbers look like.
