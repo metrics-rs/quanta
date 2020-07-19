@@ -29,10 +29,15 @@ prost = ["prost-types"]
 
 [dependencies]
 once_cell = "^1.4"
-raw-cpuid = "^8.1"
 metrics-core = { version = "^0.5", optional = true }
 prost-types = { version = "^0.6", optional = true }
 atomic-shim = "0.1.0"
+
+[target.'cfg(target_arch = "x86")'.dependencies]
+raw-cpuid = "^8.1"
+
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+raw-cpuid = "^8.1"
 
 [target.'cfg(target_arch = "mips")'.dependencies]
 ctor = "0.1.15"

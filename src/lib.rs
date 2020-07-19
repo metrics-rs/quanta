@@ -120,6 +120,7 @@ use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
 
 use once_cell::sync::OnceCell;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use raw_cpuid::CpuId;
 
 mod monotonic;
@@ -556,6 +557,7 @@ fn has_constant_or_better_tsc() -> bool {
     false
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_mfg() -> String {
     let cpuid = CpuId::new();
     cpuid
@@ -563,6 +565,7 @@ fn read_cpuid_mfg() -> String {
         .map_or_else(|| String::new(), |vi| vi.as_string().to_owned())
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_nonstop_tsc() -> bool {
     let cpuid = CpuId::new();
     cpuid
@@ -570,6 +573,7 @@ fn read_cpuid_nonstop_tsc() -> bool {
         .map_or(false, |efi| efi.has_invariant_tsc())
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_family_model() -> u32 {
     let cpuid = CpuId::new();
     cpuid.get_feature_info().map_or(0, |fi| {
@@ -577,6 +581,7 @@ fn read_cpuid_family_model() -> u32 {
     })
 }
 
+#[allow(dead_code)]
 fn has_multiple_sockets() -> bool {
     // TODO: implement me.
     //
