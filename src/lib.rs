@@ -43,7 +43,7 @@
 //! is the only code updating the recent time, the accuracy of the value given to callers is
 //! limited by how often the upkeep thread updates the time, thus the trade off between accuracy
 //! and speed of access.
-//! 
+//!
 //! # Feature Flags
 //! `quanta` comes with multiple feature flags that enable convenient conversions to time types in
 //! other popular crates:
@@ -115,13 +115,12 @@
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [metrics_core_asnanoseconds]: https://docs.rs/metrics-core/0.5.2/metrics_core/trait.AsNanoseconds.html
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.6.1/prost_types/struct.Timestamp.html
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc,
-};
+use atomic_shim::AtomicU64;
+use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
 
 use once_cell::sync::OnceCell;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use raw_cpuid::CpuId;
 
 mod monotonic;
@@ -133,11 +132,24 @@ pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
 pub use self::instant::Instant;
 mod upkeep;
-pub use self::upkeep::{Handle, Upkeep, Error};
+pub use self::upkeep::{Error, Handle, Upkeep};
 mod stats;
 use self::stats::Variance;
 
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+mod atomic_compat {
+    use super::AtomicU64;
+    use ctor::ctor;
+
+    #[ctor]
+    pub static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+}
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+use self::atomic_compat::GLOBAL_RECENT;
+
+#[cfg(not(any(target_arch = "mips", target_arch = "powerpc")))]
 static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+
 static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
 // Run 100 rounds of calibration before we start actually seeing what the numbers look like.
@@ -545,6 +557,7 @@ fn has_constant_or_better_tsc() -> bool {
     false
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_mfg() -> String {
     let cpuid = CpuId::new();
     cpuid
@@ -552,6 +565,7 @@ fn read_cpuid_mfg() -> String {
         .map_or_else(|| String::new(), |vi| vi.as_string().to_owned())
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_nonstop_tsc() -> bool {
     let cpuid = CpuId::new();
     cpuid
@@ -559,6 +573,7 @@ fn read_cpuid_nonstop_tsc() -> bool {
         .map_or(false, |efi| efi.has_invariant_tsc())
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_family_model() -> u32 {
     let cpuid = CpuId::new();
     cpuid.get_feature_info().map_or(0, |fi| {
@@ -566,6 +581,7 @@ fn read_cpuid_family_model() -> u32 {
     })
 }
 
+#[allow(dead_code)]
 fn has_multiple_sockets() -> bool {
     // TODO: implement me.
     //
