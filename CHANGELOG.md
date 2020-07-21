@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2020-07-20
+### Added
+- Add support for MIPS/PowerPC. ([#23](https://github.com/metrics-rs/quanta/pull/23))
+
 ## [0.6.1] - 2020-07-13
 ### Added
 - Publicly expose the `Error` type returned by `Upkeep::start`.
