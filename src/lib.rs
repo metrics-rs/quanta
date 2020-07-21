@@ -48,9 +48,10 @@
 #![cfg_attr(feature = "tsc", feature(asm))]
 
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
+    atomic::Ordering,
     Arc,
 };
+use atomic_shim::AtomicU64;
 
 mod monotonic;
 use self::monotonic::Monotonic;
@@ -62,6 +63,18 @@ pub use self::mock::{IntoNanoseconds, Mock};
 mod upkeep;
 pub use self::upkeep::{Builder, Handle};
 
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+mod atomic_compat {
+    use super::AtomicU64;
+    use ctor::ctor;
+    
+    #[ctor]
+    pub static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+}
+#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
+use self::atomic_compat::GLOBAL_RECENT;
+
+#[cfg(not(any(target_arch = "mips", target_arch = "powerpc")))]
 static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
 
 type Reference = Monotonic;

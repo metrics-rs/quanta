@@ -22,6 +22,13 @@ tsc = []
 
 [dependencies]
 libc = "0.2.50"
+atomic-shim = "0.1.0"
+
+[target.'cfg(target_arch = "mips")'.dependencies]
+ctor = "0.1.15"
+
+[target.'cfg(target_arch = "powerpc")'.dependencies]
+ctor = "0.1.15"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.6", features = ["profileapi"] }
