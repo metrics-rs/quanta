@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.6.3] - 2020-08-03
 ### Changed
 - Publicly expose `Clock::upkeep` for advanced use cases.
 - Relax constraints around checking for multiple sockets. ([#25](https://github.com/metrics-rs/quanta/issues/25))
