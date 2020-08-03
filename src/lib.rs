@@ -270,12 +270,17 @@ impl Calibration {
     }
 
     fn adjust_cal_ratio(&mut self, reference: &Monotonic, source: &Counter) {
-        // Overall algorithm: measure the reference and source clock deltas, which leaves us witrh
-        // a fraction of ref_d/src_d representing our source-to-reference clock scaling ratio.
+        // Overall algorithm: measure the delta between our ref/src_time values and "now" versions
+        // of them, calculate the ratio between the deltas, and then find a numerator and
+        // denominator to express that ratio such that the denominator is always a power of two.
         //
-        // Find the next highest number, starting with src_d, that is a power of two.  That number
-        // is now our new denominator in the scaling ratio.  We scale the old numerator (ref_d) by
-        // a commensurate amount to match the delta between src_d and src_d_po2.
+        // In practice, this means we take the "source" delta, and find the next biggest number that
+        // is a power of two.  We then figure out the ratio that describes the difference between
+        // _those_ two values, and multiple the "reference" delta by that much, which becomes our
+        // numerator while the power-of-two "source" delta becomes our denominator.
+        //
+        // Then, conversion from a raw value simply becomes a multiply and a bit shift instead of a
+        // multiply and full-blown divide.
         let ref_end = reference.now();
         let src_end = source.end();
 
@@ -485,7 +490,10 @@ impl Clock {
     }
 
     /// Updates the recent current time.
-    pub(crate) fn upkeep(value: Instant) {
+    ///
+    /// Most callers should use the existing [`Builder`] machinery for spawning a background thread
+    /// to handle upkeep, rather than calling [`upkeep`] directly.
+    pub fn upkeep(value: Instant) {
         GLOBAL_RECENT.store(value.0, Ordering::Release);
     }
 }
@@ -541,12 +549,6 @@ fn has_constant_or_better_tsc() -> bool {
         _ => return false,
     }
 
-    // If the vendor isn't Intel, and we have multiple sockets, it's unclear if the TSC would ever
-    // be meaningfully synchronized so let's not fall into any traps there.
-    if has_multiple_sockets() && cpu_mfg != "GenuineIntel" {
-        return false;
-    }
-
     // We check CPUID for nonstop/invariant TSC as our fallback. (CPUID EAX=0x8000_0007, bit 8)
     read_cpuid_nonstop_tsc()
 }
@@ -579,18 +581,6 @@ fn read_cpuid_family_model() -> u32 {
     cpuid.get_feature_info().map_or(0, |fi| {
         (fi.family_id() as u32) << 8 | (fi.extended_model_id() as u32) << 4 | fi.model_id() as u32
     })
-}
-
-#[allow(dead_code)]
-fn has_multiple_sockets() -> bool {
-    // TODO: implement me.
-    //
-    // the way lscpu does it could be our linux-based approach, and for windows, there's
-    // https://docs.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getlogicalprocessorinformation
-    // which shows how to count the packages
-    //
-    // not sure about macOS/*BSD/etc
-    true
 }
 
 #[cfg(test)]
