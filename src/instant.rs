@@ -103,6 +103,11 @@ impl Instant {
         self.0.checked_sub(duration.as_nanos() as u64).map(Instant)
     }
 
+    /// Gets this `Instant` as a [`Duration`] since the Unix epoch.
+    pub fn as_unix_duration(&self) -> Duration {
+        Duration::from_nanos(self.0)
+    }
+
     /// Gets the inner value of this `Instant`.
     pub fn as_u64(&self) -> u64 {
         self.0

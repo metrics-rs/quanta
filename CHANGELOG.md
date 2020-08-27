@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Add `Instant::as_unix_duration` to get the duration of time since the Unix epoch from an
+  `Instant`.
+### Changed
+- Remove `clocksource` from dependencies and tests as it no longer compiles on stable or nightly.
 
 ## [0.6.3] - 2020-08-03
 ### Changed
