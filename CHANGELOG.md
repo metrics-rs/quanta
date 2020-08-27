@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.6.4] - 2020-08-27
 ### Added
 - Add `Instant::as_unix_duration` to get the duration of time since the Unix epoch from an
   `Instant`.
