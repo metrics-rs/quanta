@@ -1,3 +1,4 @@
+no-dev-version = true
 sign-commit = true
 sign-tag = true
 pre-release-replacements = [

@@ -1,4 +1,3 @@
-use clocksource::Clocksource;
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 use quanta::Clock;
 use std::time::Instant;

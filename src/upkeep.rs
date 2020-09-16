@@ -99,7 +99,7 @@ impl Upkeep {
     /// returned when trying to spawn the thread.
     pub fn start(self) -> Result<Handle, Error> {
         // If another upkeep thread is running, inform the caller.
-        if !GLOBAL_UPKEEP_RUNNING.compare_and_swap(false, true, Ordering::SeqCst) {
+        if GLOBAL_UPKEEP_RUNNING.compare_and_swap(false, true, Ordering::SeqCst) {
             return Err(Error::UpkeepRunning);
         }
 
@@ -139,5 +139,24 @@ impl Drop for Handle {
                 .join()
                 .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to stop upkeep thread"));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Upkeep;
+    use std::time::Duration;
+
+    #[test]
+    fn test_spawning_second_upkeep() {
+        let first = Upkeep::new(Duration::from_millis(250)).start();
+        let second = Upkeep::new(Duration::from_millis(250))
+            .start()
+            .map_err(|e| e.to_string());
+
+        assert!(first.is_ok());
+
+        let second_err = second.expect_err("second upkeep should be error, got handle");
+        assert_eq!(second_err, "upkeep thread already running");
     }
 }
