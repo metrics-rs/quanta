@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 
 ## [0.6.5] - 2020-09-16
+### Changed
+- Fixed a bug with not being able to start the upkeep thread at all. ([#29](https://github.com/metrics-rs/quanta/issues/29))
 
 ## [0.6.4] - 2020-08-27
 ### Added
