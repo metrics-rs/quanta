@@ -549,8 +549,8 @@ fn has_constant_or_better_tsc() -> bool {
         _ => return false,
     }
 
-    // We check CPUID for nonstop/invariant TSC as our fallback. (CPUID EAX=0x8000_0007, bit 8)
-    read_cpuid_nonstop_tsc()
+    // Check to make sure we have nonstop TSC + RDTSCP support.
+    read_cpuid_nonstop_tsc() && read_cpuid_rdtscp_support()
 }
 
 #[allow(dead_code)]
@@ -573,6 +573,14 @@ fn read_cpuid_nonstop_tsc() -> bool {
     cpuid
         .get_extended_function_info()
         .map_or(false, |efi| efi.has_invariant_tsc())
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+fn read_cpuid_rdtscp_support() -> bool {
+    let cpuid = CpuId::new();
+    cpuid
+        .get_extended_function_info()
+        .map_or(false, |efi| efi.has_rdtscp())
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
