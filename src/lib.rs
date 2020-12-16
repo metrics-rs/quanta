@@ -162,10 +162,10 @@ const MAXIMUM_CAL_ERROR_NS: u64 = 10;
 const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum ClockType {
     Monotonic(Monotonic),
-    Counter(u64, Monotonic, Counter, Calibration),
+    Counter(AtomicU64, Monotonic, Counter, Calibration),
     Mock(Arc<Mock>),
 }
 
@@ -329,7 +329,7 @@ impl Clock {
                 calibration.calibrate(&reference, &source);
                 calibration
             });
-            ClockType::Counter(0, reference, source, *calibration)
+            ClockType::Counter(AtomicU64::new(0), reference, source, *calibration)
         } else {
             ClockType::Monotonic(reference)
         };
@@ -356,15 +356,18 @@ impl Clock {
     /// to return a monotonically increasing value between calls to the same `Clock` instance.
     ///
     /// Returns an [`Instant`].
-    pub fn now(&mut self) -> Instant {
+    pub fn now(&self) -> Instant {
         match &self.inner {
             ClockType::Monotonic(monotonic) => Instant(monotonic.now()),
-            ClockType::Counter(mut last, _, counter, _) => {
+            ClockType::Counter(last, _, counter, _) => {
                 let now = counter.now();
-                if now > last {
-                    last = now;
-                }
-                self.scaled(last)
+                // Update the last timestamp with `now`, if `now` is greater
+                // than the current value.
+                let last = last.fetch_max(now, Ordering::AcqRel);
+                // `fetch_max` always returns the previous value, so we need to
+                // see which is *actually* the max.
+                let actual = std::cmp::max(now, last);
+                self.scaled(actual)
             }
             ClockType::Mock(mock) => Instant(mock.now()),
         }
@@ -504,6 +507,22 @@ impl Default for Clock {
     }
 }
 
+// A manual `Clone` impl is required because `atomic_shim`'s `AtomicU64` is not `Clone`.
+impl Clone for ClockType {
+    fn clone(&self) -> Self {
+        match self {
+            ClockType::Mock(mock) => ClockType::Mock(mock.clone()),
+            ClockType::Monotonic(monotonic) => ClockType::Monotonic(monotonic.clone()),
+            ClockType::Counter(last, monotonic, counter, calibration) => ClockType::Counter(
+                AtomicU64::new(last.load(Ordering::Acquire)),
+                monotonic.clone(),
+                counter.clone(),
+                calibration.clone(),
+            ),
+        }
+    }
+}
+
 #[inline]
 fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
     let delta = src_raw.saturating_sub(cal.src_time);
@@ -598,7 +617,7 @@ mod tests {
 
     #[test]
     fn test_mock() {
-        let (mut clock, mock) = Clock::mock();
+        let (clock, mock) = Clock::mock();
         assert_eq!(clock.now().as_u64(), 0);
         mock.increment(42);
         assert_eq!(clock.now().as_u64(), 42);
@@ -606,7 +625,7 @@ mod tests {
 
     #[test]
     fn test_now() {
-        let mut clock = Clock::new();
+        let clock = Clock::new();
         assert!(clock.now().as_u64() > 0);
     }
 
@@ -638,7 +657,7 @@ mod tests {
 
     #[test]
     fn test_reference_source_calibration() {
-        let mut clock = Clock::new();
+        let clock = Clock::new();
         let reference = Monotonic::new();
 
         let loops = 10000;

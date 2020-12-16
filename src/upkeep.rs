@@ -104,7 +104,7 @@ impl Upkeep {
         }
 
         let interval = self.interval;
-        let mut clock = self.clock;
+        let clock = self.clock;
 
         let done = Arc::new(AtomicBool::new(false));
         let their_done = done.clone();
