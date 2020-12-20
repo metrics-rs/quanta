@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Changed
+- MSRV bumped to 1.45.0.
+- `Clock::now` takes `&self` instead of `&mut self`.
 
 ## [0.6.5] - 2020-09-16
 ### Changed
