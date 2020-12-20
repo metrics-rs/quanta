@@ -7,7 +7,7 @@ fn time_instant_now(b: &mut Bencher) {
 }
 
 fn time_quanta_now(b: &mut Bencher) {
-    let mut clock = Clock::new();
+    let clock = Clock::new();
     b.iter(|| clock.now())
 }
 
@@ -59,7 +59,7 @@ fn time_quanta_raw_delta(b: &mut Bencher) {
 }
 
 fn time_quanta_now_delta(b: &mut Bencher) {
-    let mut clock = Clock::new();
+    let clock = Clock::new();
     b.iter(|| {
         let start = clock.now();
         let end = clock.now();
