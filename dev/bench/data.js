@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1609703783501,
+  "lastUpdate": 1609703858868,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -456,6 +456,122 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_instant_recent",
             "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      }
+    ],
+    "bench-macOS-latest": [
+      {
+        "commit": {
+          "author": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "distinct": true,
+          "id": "1a3368ba35c635b9e030159abbf8b5e62fe86cb5",
+          "message": "fix up CI for master->main",
+          "timestamp": "2021-01-03T14:50:43-05:00",
+          "tree_id": "0d4ff5e8f2585fdf00dff89902805a4f8418d49c",
+          "url": "https://github.com/metrics-rs/quanta/commit/1a3368ba35c635b9e030159abbf8b5e62fe86cb5"
+        },
+        "date": 1609703858036,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 18,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 60,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 22,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 47,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 26,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 12,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 15,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 29,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start",
+            "value": 17,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start_scaled",
+            "value": 20,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end",
+            "value": 18,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end_scaled",
+            "value": 22,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start/end_delta",
+            "value": 41,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 2,
             "range": "± 0",
             "unit": "ns/iter"
           }
