@@ -59,21 +59,21 @@ sections of code.  This can be relevant/important for accurately measuring perfo
 ## alternative crates
 
 - `chrono`:
--- based on `std::time::SystemTime`: non-monotonic reads
--- focused on timezone-based "date/time" measurements, not intervals/elapsed time
+  - based on `std::time::SystemTime`: non-monotonic reads
+  - focused on timezone-based "date/time" measurements, not intervals/elapsed time
 - `clock`:
--- based on `std::time::SystemTime`: non-monotonic reads
--- clock can be swapped (trait-based)
--- no free function for acquiring time
+  - based on `std::time::SystemTime`: non-monotonic reads
+  - clock can be swapped (trait-based)
+  - no free function for acquiring time
 - `clocksource`:
--- based on TSC w/ OS fallback; non-monotonic reads
--- clock cannot be altered at all (no pause, no discrete updates)
--- depends on unstable `asm!` macro + feature flag to enable TSC
--- no free function for acquiring time
+  - based on TSC w/ OS fallback; non-monotonic reads
+  - clock cannot be altered at all (no pause, no discrete updates)
+  - depends on unstable `asm!` macro + feature flag to enable TSC
+  - no free function for acquiring time
 - `pausable_clock`:
--- based on `std::time::Instant`: monotonic reads
--- clock can be paused (time can be delayed, but not discretely updated)
--- no free function for acquiring time
+  - based on `std::time::Instant`: monotonic reads
+  - clock can be paused (time can be delayed, but not discretely updated)
+  - no free function for acquiring time
 
 ## license
 
