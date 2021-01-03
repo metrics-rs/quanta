@@ -1,23 +1,22 @@
 # quanta
 
-[![conduct-badge][]][conduct] [![travis-badge][]][travis] [![downloads-badge][] ![release-badge][]][crate] [![docs-badge][]][docs] [![libraries-io-badge][]][libraries-io] [![cargo-make-badge][]][cargo-make] [![license-badge][]](#license)
+[![conduct-badge][]][conduct] [![gh-actions-badge][]][gh-actions] [![downloads-badge][] ![release-badge][]][crate] [![docs-badge][]][docs] [![libraries-io-badge][]][libraries-io] [![license-badge][]](#license)
 
 [conduct-badge]: https://img.shields.io/badge/%E2%9D%A4-code%20of%20conduct-blue.svg
-[travis-badge]: https://img.shields.io/travis/metrics-rs/quanta/master.svg
+[gh-actions-badge]: https://github.com/metrics-rs/quanta/workflows/Rust/badge.svg
 [downloads-badge]: https://img.shields.io/crates/d/quanta.svg
 [release-badge]: https://img.shields.io/crates/v/quanta.svg
 [license-badge]: https://img.shields.io/crates/l/quanta.svg
 [docs-badge]: https://docs.rs/quanta/badge.svg
-[cargo-make-badge]: https://img.shields.io/badge/built%20with-cargo--make-yellow.svg
-[cargo-make]: https://sagiegurari.github.io/cargo-make/
 [libraries-io-badge]: https://img.shields.io/librariesio/github/metrics-rs/quanta.svg
 [libraries-io]: https://libraries.io/cargo/quanta
 [conduct]: https://github.com/metrics-rs/quanta/blob/master/CODE_OF_CONDUCT.md
-[travis]: https://travis-ci.org/metrics-rs/quanta
+[gh-actions]: https://github.com/metrics-rs/quanta/actions
 [crate]: https://crates.io/crates/quanta
 [docs]: https://docs.rs/quanta
 
-__quanta__ is a high-speed timing library, useful for getting the current time _very quickly_.
+__quanta__ is a high-speed timing library, useful for getting the current time _very quickly_, as
+well as manipulating it.
 
 ## code of conduct
 
@@ -28,33 +27,53 @@ __quanta__ is a high-speed timing library, useful for getting the current time _
 The API documentation of this library can be found at [docs.rs/quanta](https://docs.rs/quanta/).
 
 ## general features
-- monotonic time in nanoseconds or raw cycles
+- count CPU cycles via Time Stamp Counter (TSC). or
+- get monotonic time, in nanoseconds, based on TSC (or OS fallback)
 - extremely low overhead where possible
-- optimized for instruction-level accuracy in measurements
-- mockable!
-- cross-platform!
+- mockable
+- cross-platform
 - fun, science-y name!
 
 ## platform / architecture support
 
 For platforms, we have tier 1 support for Linux, Windows, and macOS/iOS.  Platforms such as Solaris or various BSDs have tier 2.5 support: `quanta` should work on them by virtue of depending on `libc`, but we don't test or build on these platforms as all.
 
-Architecture-wise, x86/x86-64 and SSE2 are required for the optimized TSC codepath.  This is handled transparently via compile-time target features, so you must build with the appropriate compiler flags to specify the CPU features where your binary will run, as runtime detection is not supported.
+Both x86/x86-64 and SSE2 support are checked for at compile-time, so compiler flags must be set
+correctly.  Further checks will happen at runtime to assert that the TSC source itself is stable
+enough for taking measurements, and if so, will be utilized.
 
 ## performance
 
-Accessing the TSC on a modern x86 processor can have an overhead of as little as ~11ns, and `quanta` provides the thinnest possible layer over this.  Using the native time facilities, such as `clock_gettime(CLOCK_MONOTONIC)` on Linux, you may expect to see closer to 17-18ns of overhead.
+`quanta` sits neck-and-neck with native OS time facilities: the cost of `Clock::now` is on par
+`Instant::now` from the stdlib, if not better.
 
-Measurements have not been taken for non-x86-based architectures/platforms.
+## why use this over stdlib?
 
-## why use this over stdlib or clocksource?
+Beyond having a performance edge in specific situations, the ability to use mocked time makes it
+easier to actually test that your application is doing the right thing when time is involved.
 
-The performance alone is enough to choose this over the stdlib timing facilities if you're doing performance-critical work or need high-accuracy point-in-time measurements, which `Instant` is just not suitable for.
+Additionally, and as mentioned in the general features section, `quanta` provides a safe/thin
+wrapper over accessing the Time Stamp Counter, which allows measuring cycle counts over short
+sections of code.  This can be relevant/important for accurately measuring performance-critical sections of code.
 
-When compared to `clocksource`, though, we have a few extra features that can make the difference:
+## alternative crates
 
-- `Clock` can be mocked, allowing you to easily control the passage of time in your tests
-- `Clock` provides `start` and `end` as replacements for `raw`, which are optimized for instruction-level accuracy, avoiding instruction reordering that might taint measurements
+- `chrono`:
+-- based on `std::time::SystemTime`: non-monotonic reads
+-- focused on timezone-based "date/time" measurements, not intervals/elapsed time
+- `clock`:
+-- based on `std::time::SystemTime`: non-monotonic reads
+-- clock can be swapped (trait-based)
+-- no free function for acquiring time
+- `clocksource`:
+-- based on TSC w/ OS fallback; non-monotonic reads
+-- clock cannot be altered at all (no pause, no discrete updates)
+-- depends on unstable `asm!` macro + feature flag to enable TSC
+-- no free function for acquiring time
+- `pausable_clock`:
+-- based on `std::time::Instant`: monotonic reads
+-- clock can be paused (time can be delayed, but not discretely updated)
+-- no free function for acquiring time
 
 ## license
 

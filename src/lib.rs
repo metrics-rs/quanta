@@ -497,7 +497,7 @@ impl Clone for ClockType {
                 AtomicU64::new(last.load(Ordering::Acquire)),
                 monotonic.clone(),
                 counter.clone(),
-                calibration.clone(),
+                *calibration,
             ),
         }
     }
@@ -530,7 +530,7 @@ pub(crate) fn get_now() -> Instant {
     if let Some(instant) = CLOCK_OVERRIDE.with(|clock| clock.borrow().as_ref().map(|c| c.now())) {
         instant
     } else {
-        GLOBAL_CLOCK.get_or_init(|| Clock::new()).now()
+        GLOBAL_CLOCK.get_or_init(Clock::new).now()
     }
 }
 
@@ -610,7 +610,7 @@ fn read_cpuid_mfg() -> String {
     let cpuid = CpuId::new();
     cpuid
         .get_vendor_info()
-        .map_or_else(|| String::new(), |vi| vi.as_string().to_owned())
+        .map_or_else(String::new, |vi| vi.as_string().to_owned())
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
