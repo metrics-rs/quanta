@@ -27,14 +27,14 @@ jobs:
         rust_version: ['1.45.0', 'stable', 'nightly']
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install Rust ${{ matrix.rust_version }}
       uses: actions-rs/toolchain@v1
       with:
           toolchain: ${{ matrix.rust_version }}
           override: true
     - name: Run Tests
-      run: cargo test
+      run: cargo test --all-features -- --test-threads=1
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -42,11 +42,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install Rust Stable
       uses: actions-rs/toolchain@v1
       with:
           toolchain: 'stable'
           override: true
     - name: Run Benchmarks
-      run: cargo bench
+      run: cargo bench -- --output-format bencher | tee output.txt
+    - name: Process benchmark results
+      uses: rhysd/github-action-benchmark@v1
+      with:
+          tool: 'cargo'
+          output-file-path: output.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-always: true
+          alert-threshold: '10%'
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@tobz'
+          auto-push: ${{ github.ref == 'refs/heads/master' }}

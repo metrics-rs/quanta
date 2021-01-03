@@ -1,5 +1,3 @@
-use crate::ClockSource;
-
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use mach::mach_time::{mach_continuous_time, mach_timebase_info};
 
@@ -24,8 +22,8 @@ impl Monotonic {
     not(target_os = "ios"),
     not(target_os = "windows")
 ))]
-impl ClockSource for Monotonic {
-    fn now(&self) -> u64 {
+impl Monotonic {
+    pub fn now(&self) -> u64 {
         let mut ts = libc::timespec {
             tv_sec: 0,
             tv_nsec: 0,
@@ -34,14 +32,6 @@ impl ClockSource for Monotonic {
             libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut ts);
         }
         (ts.tv_sec as u64) * 1_000_000_000 + (ts.tv_nsec as u64)
-    }
-
-    fn start(&self) -> u64 {
-        self.now()
-    }
-
-    fn end(&self) -> u64 {
-        self.now()
     }
 }
 
@@ -68,8 +58,8 @@ impl Monotonic {
 }
 
 #[cfg(target_os = "windows")]
-impl ClockSource for Monotonic {
-    fn now(&self) -> u64 {
+impl Monotonic {
+    pub fn now(&self) -> u64 {
         use std::mem;
         use winapi::um::profileapi;
 
@@ -83,14 +73,6 @@ impl ClockSource for Monotonic {
             *count.QuadPart() as u64
         };
         raw * self.factor
-    }
-
-    fn start(&self) -> u64 {
-        self.now()
-    }
-
-    fn end(&self) -> u64 {
-        self.now()
     }
 }
 
@@ -108,18 +90,10 @@ impl Monotonic {
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-impl ClockSource for Monotonic {
-    fn now(&self) -> u64 {
+impl Monotonic {
+    pub fn now(&self) -> u64 {
         let raw = unsafe { mach_continuous_time() };
         raw * self.factor
-    }
-
-    fn start(&self) -> u64 {
-        self.now()
-    }
-
-    fn end(&self) -> u64 {
-        self.now()
     }
 }
 
