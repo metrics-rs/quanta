@@ -683,6 +683,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     fn test_reference_source_calibration() {
         let clock = Clock::new();
         let reference = Monotonic::new();

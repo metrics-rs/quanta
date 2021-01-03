@@ -27,6 +27,8 @@ name = "timing"
 harness = false
 
 [features]
+default = ["flaky_tests"]
+flaky_tests = []
 metrics = ["metrics-core"]
 prost = ["prost-types"]
 
