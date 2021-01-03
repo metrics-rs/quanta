@@ -19,6 +19,9 @@ keywords = ["rdtsc", "timing", "nanosecond"]
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+bench = false
+
 [[bench]]
 name = "timing"
 harness = false
