@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - MSRV bumped to 1.45.0.
 - `Clock::now` takes `&self` instead of `&mut self`.
+- Fixed a bug where a failure to spawn the upkeep thread would not allow subsequent attempts to
+  spawn the upkeep thread to proceed.
+
+### Added
+- New methods --`Instant::now` and `Instant::recent` for getting the current and recent time,
+  respectively.
+- New free function `quanta::with_clock` for setting an override on the current thread that affects
+  calls made to `Instant::now` and `Instant::recent`.
+- New free function `quanta::set_recent` to allow customization of how global recent time is updated.
 
 ## [0.6.5] - 2020-09-16
 ### Changed
