@@ -10,7 +10,7 @@
 [docs-badge]: https://docs.rs/quanta/badge.svg
 [libraries-io-badge]: https://img.shields.io/librariesio/github/metrics-rs/quanta.svg
 [libraries-io]: https://libraries.io/cargo/quanta
-[conduct]: https://github.com/metrics-rs/quanta/blob/master/CODE_OF_CONDUCT.md
+[conduct]: https://github.com/metrics-rs/quanta/blob/main/CODE_OF_CONDUCT.md
 [gh-actions]: https://github.com/metrics-rs/quanta/actions
 [crate]: https://crates.io/crates/quanta
 [docs]: https://docs.rs/quanta

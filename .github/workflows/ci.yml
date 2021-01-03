@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   fmt:
@@ -14,9 +14,9 @@ jobs:
     - name: Install Rust Nightly
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
+        toolchain: nightly
+        override: true
+        components: rustfmt, clippy
     - name: Check Formatting
       run: cargo fmt --all -- --check
   test:
@@ -31,8 +31,8 @@ jobs:
     - name: Install Rust ${{ matrix.rust_version }}
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: ${{ matrix.rust_version }}
-          override: true
+        toolchain: ${{ matrix.rust_version }}
+        override: true
     - name: Run Tests
       run: cargo test --no-default-features --features=metrics,prost -- --test-threads=1
   bench:
@@ -46,19 +46,20 @@ jobs:
     - name: Install Rust Stable
       uses: actions-rs/toolchain@v1
       with:
-          toolchain: 'stable'
-          override: true
+        toolchain: 'stable'
+        override: true
     - name: Run Benchmarks
       run: cargo bench -- --output-format bencher | tee output.txt
     - name: Process benchmark results
       uses: rhysd/github-action-benchmark@v1
       with:
-          tool: 'cargo'
-          output-file-path: output.txt
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          comment-always: true
-          alert-threshold: '10%'
-          comment-on-alert: true
-          fail-on-alert: true
-          alert-comment-cc-users: '@tobz'
-          auto-push: ${{ github.ref == 'refs/heads/master' }}
+        name: bench-${{ matrix.os }}
+        tool: 'cargo'
+        output-file-path: output.txt
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        comment-always: true
+        alert-threshold: '10%'
+        comment-on-alert: true
+        fail-on-alert: true
+        alert-comment-cc-users: '@metrics-rs/maintainers'
+        auto-push: ${{ github.ref == 'refs/heads/main' }}

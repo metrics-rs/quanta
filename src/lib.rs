@@ -442,12 +442,12 @@ impl Clock {
             return Duration::new(0, 0);
         }
 
-        let raw_delta = end.wrapping_sub(start);
+        let delta = end.wrapping_sub(start);
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, cal) => {
-                mul_div_po2_u64(raw_delta, cal.scale_factor, cal.scale_shift)
+            ClockType::Counter(_, _, _, calibration) => {
+                mul_div_po2_u64(delta, calibration.scale_factor, calibration.scale_shift)
             }
-            _ => raw_delta,
+            _ => delta,
         };
         Duration::from_nanos(scaled)
     }
