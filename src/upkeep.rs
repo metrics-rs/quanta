@@ -99,9 +99,9 @@ impl Upkeep {
     /// returned when trying to spawn the thread.
     pub fn start(self) -> Result<Handle, Error> {
         // If another upkeep thread is running, inform the caller.
-        if GLOBAL_UPKEEP_RUNNING.compare_and_swap(false, true, Ordering::SeqCst) {
-            return Err(Error::UpkeepRunning);
-        }
+        let _ = GLOBAL_UPKEEP_RUNNING
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .map_err(|_| Error::UpkeepRunning)?;
 
         let interval = self.interval;
         let clock = self.clock;
@@ -109,7 +109,7 @@ impl Upkeep {
         let done = Arc::new(AtomicBool::new(false));
         let their_done = done.clone();
 
-        let handle = thread::Builder::new()
+        let result = thread::Builder::new()
             .name("quanta-upkeep".to_string())
             .spawn(move || {
                 while !their_done.load(Ordering::Acquire) {
@@ -121,7 +121,14 @@ impl Upkeep {
 
                 GLOBAL_UPKEEP_RUNNING.store(false, Ordering::SeqCst);
             })
-            .map_err(Error::FailedToSpawnUpkeepThread)?;
+            .map_err(Error::FailedToSpawnUpkeepThread);
+
+        // Let another caller attempt to spawn the upkeep thread if we failed to do so.
+        if result.is_err() {
+            GLOBAL_UPKEEP_RUNNING.store(false, Ordering::SeqCst);
+        }
+
+        let handle = result?;
 
         Ok(Handle {
             done,

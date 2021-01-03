@@ -114,10 +114,13 @@
 //! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [metrics_core_asnanoseconds]: https://docs.rs/metrics-core/0.5.2/metrics_core/trait.AsNanoseconds.html
-//! [prost_types_timestamp]: https://docs.rs/prost-types/0.6.1/prost_types/struct.Timestamp.html
+//! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
 use atomic_shim::AtomicU64;
-use std::sync::{atomic::Ordering, Arc};
 use std::time::Duration;
+use std::{
+    cell::RefCell,
+    sync::{atomic::Ordering, Arc},
+};
 
 use once_cell::sync::OnceCell;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -136,6 +139,8 @@ pub use self::upkeep::{Error, Handle, Upkeep};
 mod stats;
 use self::stats::Variance;
 
+static GLOBAL_CLOCK: OnceCell<Clock> = OnceCell::new();
+
 #[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
 mod atomic_compat {
     use super::AtomicU64;
@@ -152,7 +157,11 @@ static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
 
 static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
-// Run 100 rounds of calibration before we start actually seeing what the numbers look like.
+thread_local! {
+    static CLOCK_OVERRIDE: RefCell<Option<Clock>> = RefCell::new(None);
+}
+
+// Run 500 rounds of calibration before we start actually seeing what the numbers look like.
 const MINIMUM_CAL_ROUNDS: u64 = 500;
 
 // We want our maximum error to be 10 nanoseconds.
@@ -167,35 +176,6 @@ enum ClockType {
     Monotonic(Monotonic),
     Counter(AtomicU64, Monotonic, Counter, Calibration),
     Mock(Arc<Mock>),
-}
-
-/// A clock source that can provide the current time.
-trait ClockSource {
-    /// Gets the current time.
-    ///
-    /// Ideally, this method should return the time in nanoseconds to match the default clock, but
-    /// it is not a requirement.
-    fn now(&self) -> u64;
-
-    /// Gets the current time, optimized for measuring the time before the start of a code section.
-    ///
-    /// This allows clock sources to provide a start-specific measurement that has a more accuracy
-    /// than the general performance of [`now`].  This is useful for short sections of code where
-    /// the reordering of CPU instructions could affect the actual start/end measurements.
-    ///
-    /// Ideally, this method should return the time in nanoseconds to match the default clock, but
-    /// it is not a requirement.
-    fn start(&self) -> u64;
-
-    /// Gets the current time, optimized for measuring the time after the end of a code section.
-    ///
-    /// This allows clock sources to provide a end-specific measurement that has a more accuracy
-    /// than the general performance of [`now`].  This is useful for short sections of code where
-    /// the reordering of CPU instructions could affect the actual start/end measurements.
-    ///
-    /// Ideally, this method should return the time in nanoseconds to match the default clock, but
-    /// it is not a requirement.
-    fn end(&self) -> u64;
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -369,7 +349,7 @@ impl Clock {
                 let actual = std::cmp::max(now, last);
                 self.scaled(actual)
             }
-            ClockType::Mock(mock) => Instant(mock.now()),
+            ClockType::Mock(mock) => Instant(mock.value()),
         }
     }
 
@@ -389,7 +369,7 @@ impl Clock {
         match &self.inner {
             ClockType::Monotonic(monotonic) => monotonic.now(),
             ClockType::Counter(_, _, counter, _) => counter.now(),
-            ClockType::Mock(mock) => mock.now(),
+            ClockType::Mock(mock) => mock.value(),
         }
     }
 
@@ -406,9 +386,9 @@ impl Clock {
     /// [`raw`]: Clock::raw
     pub fn start(&self) -> u64 {
         match &self.inner {
-            ClockType::Monotonic(monotonic) => monotonic.start(),
+            ClockType::Monotonic(monotonic) => monotonic.now(),
             ClockType::Counter(_, _, counter, _) => counter.start(),
-            ClockType::Mock(mock) => mock.now(),
+            ClockType::Mock(mock) => mock.value(),
         }
     }
 
@@ -425,9 +405,9 @@ impl Clock {
     /// [`raw`]: Clock::raw
     pub fn end(&self) -> u64 {
         match &self.inner {
-            ClockType::Monotonic(monotonic) => monotonic.end(),
+            ClockType::Monotonic(monotonic) => monotonic.now(),
             ClockType::Counter(_, _, counter, _) => counter.end(),
-            ClockType::Mock(mock) => mock.now(),
+            ClockType::Mock(mock) => mock.value(),
         }
     }
 
@@ -439,12 +419,12 @@ impl Clock {
     ///
     /// Returns an [`Instant`].
     pub fn scaled(&self, value: u64) -> Instant {
-        match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => {
-                Instant(scale_src_to_ref(value, &calibration) as u64)
-            }
-            _ => Instant(value),
-        }
+        let scaled = match &self.inner {
+            ClockType::Counter(_, _, _, calibration) => scale_src_to_ref(value, &calibration),
+            _ => value,
+        };
+
+        Instant(scaled)
     }
 
     /// Calculates the delta between two measurements, and scales to reference time.
@@ -487,7 +467,7 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn recent(&self) -> Instant {
         match &self.inner {
-            ClockType::Mock(mock) => Instant(mock.now()),
+            ClockType::Mock(mock) => Instant(mock.value()),
             _ => Instant(GLOBAL_RECENT.load(Ordering::Relaxed)),
         }
     }
@@ -520,6 +500,53 @@ impl Clone for ClockType {
                 calibration.clone(),
             ),
         }
+    }
+}
+
+/// Sets this clock as the default for the duration of a closure.
+///
+/// This will only affect calls made against [`Instant`].  [`Clock`] is always self-contained.
+pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
+    CLOCK_OVERRIDE.with(|current| {
+        let old = current.replace(Some(clock.clone()));
+        let result = f();
+        let _ = current.replace(old);
+        result
+    })
+}
+
+/// Sets the global recent time.
+///
+/// While callers should typically prefer to use [`Upkeep`] to establish a background thread in
+/// order to drive the global recent time, this function allows callers to customize how the global
+/// recent time is updated.  For example, programs using an asynchronous runtime may prefer to
+/// schedule a task that does the updating, avoiding an extra thread.
+pub fn set_recent(instant: Instant) {
+    GLOBAL_RECENT.store(instant.as_u64(), Ordering::Release);
+}
+
+#[inline]
+pub(crate) fn get_now() -> Instant {
+    if let Some(instant) = CLOCK_OVERRIDE.with(|clock| clock.borrow().as_ref().map(|c| c.now())) {
+        instant
+    } else {
+        GLOBAL_CLOCK.get_or_init(|| Clock::new()).now()
+    }
+}
+
+#[inline]
+pub(crate) fn get_recent() -> Instant {
+    // We make a small trade-off here where if the global recent time isn't zero, we use that,
+    // regardless of whether or not there's a thread-specific clock override.  Otherwise, we would
+    // blow our performance budget.
+    //
+    // Given that global recent time shouldn't ever be getting _actually_ updated in tests, this
+    // should be a reasonable trade-off.
+    let recent = GLOBAL_RECENT.load(Ordering::Acquire);
+    if recent != 0 {
+        Instant(recent)
+    } else {
+        get_now()
     }
 }
 
@@ -612,7 +639,7 @@ fn read_cpuid_family_model() -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{Clock, ClockSource, Monotonic};
+    use super::{Clock, Monotonic};
     use average::{Merge, Variance};
 
     #[test]

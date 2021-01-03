@@ -1,14 +1,19 @@
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};
-use quanta::Clock;
-use std::time::Instant;
+use quanta::{Clock, Instant as QuantaInstant};
+use std::time::Instant as StdInstant;
 
 fn time_instant_now(b: &mut Bencher) {
-    b.iter(|| Instant::now())
+    b.iter(|| StdInstant::now())
 }
 
 fn time_quanta_now(b: &mut Bencher) {
     let clock = Clock::new();
     b.iter(|| clock.now())
+}
+
+fn time_quanta_instant_now(b: &mut Bencher) {
+    let _ = QuantaInstant::now();
+    b.iter(|| QuantaInstant::now());
 }
 
 fn time_quanta_raw(b: &mut Bencher) {
@@ -43,8 +48,8 @@ fn time_quanta_end_scaled(b: &mut Bencher) {
 
 fn time_instant_delta(b: &mut Bencher) {
     b.iter(|| {
-        let start = Instant::now();
-        let d = Instant::now() - start;
+        let start = StdInstant::now();
+        let d = StdInstant::now() - start;
         (d.as_secs() * 1_000_000_000) + u64::from(d.subsec_nanos())
     })
 }
@@ -81,6 +86,11 @@ fn time_quanta_recent(b: &mut Bencher) {
     b.iter(|| clock.recent())
 }
 
+fn time_quanta_instant_recent(b: &mut Bencher) {
+    quanta::set_recent(QuantaInstant::now());
+    b.iter(|| QuantaInstant::recent());
+}
+
 fn benchmark(c: &mut Criterion) {
     let mut std_group = c.benchmark_group("stdlib");
     std_group.bench_function("instant now", time_instant_now);
@@ -90,6 +100,7 @@ fn benchmark(c: &mut Criterion) {
     let mut q_group = c.benchmark_group("quanta");
     q_group.bench_function("quanta now", time_quanta_now);
     q_group.bench_function("quanta now delta", time_quanta_now_delta);
+    q_group.bench_function("quanta instant now", time_quanta_instant_now);
     q_group.bench_function("quanta raw", time_quanta_raw);
     q_group.bench_function("quanta raw scaled", time_quanta_raw_scaled);
     q_group.bench_function("quanta raw delta", time_quanta_raw_delta);
@@ -99,6 +110,7 @@ fn benchmark(c: &mut Criterion) {
     q_group.bench_function("quanta end scaled", time_quanta_end_scaled);
     q_group.bench_function("quanta start/end delta", time_quanta_start_end_delta);
     q_group.bench_function("quanta recent", time_quanta_recent);
+    q_group.bench_function("quanta instant recent", time_quanta_instant_recent);
     q_group.finish();
 }
 

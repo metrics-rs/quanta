@@ -1,7 +1,5 @@
-use crate::ClockSource;
-
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
-use std::arch::x86_64::{__rdtscp, _mm_lfence, _rdtsc};
+use core::arch::x86_64::{__rdtscp, _mm_lfence, _rdtsc};
 
 #[derive(Debug, Clone, Default)]
 pub struct Counter;
@@ -14,15 +12,15 @@ impl Counter {
 }
 
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
-impl ClockSource for Counter {
-    fn now(&self) -> u64 {
+impl Counter {
+    pub fn now(&self) -> u64 {
         unsafe {
             _mm_lfence();
             _rdtsc()
         }
     }
 
-    fn start(&self) -> u64 {
+    pub fn start(&self) -> u64 {
         unsafe {
             _mm_lfence();
             let result = _rdtsc();
@@ -31,7 +29,7 @@ impl ClockSource for Counter {
         }
     }
 
-    fn end(&self) -> u64 {
+    pub fn end(&self) -> u64 {
         let mut _aux: u32 = 0;
         unsafe {
             let result = __rdtscp(&mut _aux as *mut _);
@@ -42,7 +40,7 @@ impl ClockSource for Counter {
 }
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
-impl ClockSource for Counter {
+impl Counter {
     fn now(&self) -> u64 {
         panic!("can't use counter without TSC support");
     }

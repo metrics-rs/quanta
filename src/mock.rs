@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use crate::ClockSource;
 use atomic_shim::AtomicU64;
 use std::{
     sync::{atomic::Ordering, Arc},
@@ -62,19 +61,5 @@ impl Mock {
     /// Gets the current value of this `Mock`.
     pub fn value(&self) -> u64 {
         self.offset.load(Ordering::Acquire)
-    }
-}
-
-impl ClockSource for Mock {
-    fn now(&self) -> u64 {
-        self.offset.load(Ordering::Acquire)
-    }
-
-    fn start(&self) -> u64 {
-        self.now()
-    }
-
-    fn end(&self) -> u64 {
-        self.now()
     }
 }

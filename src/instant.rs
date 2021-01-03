@@ -20,6 +20,33 @@ use std::time::Duration;
 pub struct Instant(pub(crate) u64);
 
 impl Instant {
+    /// Gets the current time, scaled to reference time.
+    ///
+    /// This method depends on a lazily initialized global clock, which can take up to 200ms to
+    /// initialize and calibrate itself.
+    ///
+    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed
+    /// to return a monotonically increasing value.
+    pub fn now() -> Instant {
+        crate::get_now()
+    }
+
+    /// Gets the most recent current time, scaled to reference time.
+    ///
+    /// This method provides ultra-low-overhead access to a slightly-delayed version of the current
+    /// time.  Instead of querying the underlying source clock directly, a shared, global value is
+    /// read directly without the need to scale to reference time.
+    ///
+    /// The value is updated by running an "upkeep" thread or by calling [`quanta::set_recent`].  An
+    /// upkeep thread can be configured and spawned via [`Builder`].
+    ///
+    /// If the upkeep thread has not been started, or no value has been set manually, a
+    /// lazily initialized global clock will be used to get the current time.  This clock can take
+    /// up to 200ms to initialize and calibrate itself.
+    pub fn recent() -> Instant {
+        crate::get_recent()
+    }
+
     /// Returns the amount of time elapsed from another instant to this one.
     ///
     /// # Panics
@@ -201,5 +228,74 @@ impl Into<prost_types::Timestamp> for Instant {
             seconds: secs,
             nanos: nsecs,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Instant;
+    use crate::{with_clock, Clock};
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn test_now() {
+        let t0 = Instant::now();
+        thread::sleep(Duration::from_millis(15));
+        let t1 = Instant::now();
+
+        assert!(t0.as_u64() > 0);
+        assert!(t1.as_u64() > 0);
+
+        let result = t1 - t0;
+        let threshold = Duration::from_millis(14);
+        assert!(result > threshold);
+    }
+
+    #[test]
+    fn test_recent() {
+        // Ensures that the recent global value is zero so that the fallback logic can kick in.
+        crate::set_recent(Instant(0));
+
+        let t0 = Instant::recent();
+        thread::sleep(Duration::from_millis(15));
+        let t1 = Instant::recent();
+
+        assert!(t0.as_u64() > 0);
+        assert!(t1.as_u64() > 0);
+
+        let result = t1 - t0;
+        let threshold = Duration::from_millis(14);
+        assert!(result > threshold);
+
+        crate::set_recent(Instant(1));
+        let t2 = Instant::recent();
+        thread::sleep(Duration::from_millis(15));
+        let t3 = Instant::recent();
+        assert_eq!(t2, t3);
+    }
+
+    #[test]
+    fn test_mocking() {
+        let (clock, mock) = Clock::mock();
+        with_clock(&clock, move || {
+            let t0 = Instant::now();
+            mock.increment(42);
+            let t1 = Instant::now();
+
+            assert_eq!(t0.as_u64(), 0);
+            assert_eq!(t1.as_u64(), 42);
+
+            let t2 = Instant::recent();
+            mock.increment(420);
+            let t3 = Instant::recent();
+
+            assert_eq!(t2.as_u64(), 42);
+            assert_eq!(t3.as_u64(), 462);
+
+            crate::set_recent(Instant(1440));
+            let t4 = Instant::recent();
+            assert_eq!(t4.as_u64(), 1440);
+        })
     }
 }
