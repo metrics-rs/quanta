@@ -61,6 +61,13 @@ sections of code.  This can be relevant/important for accurately measuring perfo
 - [`chrono`](https://docs.rs/chrono):
   - based on `std::time::SystemTime`: non-monotonic reads
   - focused on timezone-based "date/time" measurements, not intervals/elapsed time
+  - clock cannot be altered at all (no pause, no discrete updates)
+- [`time`](https://docs.rs/time):
+  - based on `std::time::SystemTime` and `std::time::Instant`:
+    - `time::Time`/`time::PrimitiveDateTime` use `SystemTime`: non-monotonic reads
+    - `time::Instant` uses `Instant`: monotonic reads
+  - focused on timezone-based "date/time" measurements, not interval/elapsed time
+  - clock cannot be altered at all (no pause, no discrete updates)
 - [`clock`](https://docs.rs/clock):
   - based on `std::time::SystemTime`: non-monotonic reads
   - clock can be swapped (trait-based)
