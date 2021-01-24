@@ -41,15 +41,15 @@ impl Counter {
 
 #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
 impl Counter {
-    fn now(&self) -> u64 {
+    pub fn now(&self) -> u64 {
         panic!("can't use counter without TSC support");
     }
 
-    fn start(&self) -> u64 {
+    pub fn start(&self) -> u64 {
         panic!("can't use counter without TSC support");
     }
 
-    fn end(&self) -> u64 {
+    pub fn end(&self) -> u64 {
         panic!("can't use counter without TSC support");
     }
 }
