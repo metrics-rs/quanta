@@ -7,6 +7,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.7.1] - 2021-01-24
 ### Fixed
 - Incorrect method visibility for non-SSE2 implementation of `Counter`.
   ([#38](https://github.com/metrics-rs/quanta/issues/38))
