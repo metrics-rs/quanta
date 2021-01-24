@@ -1,12 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Fixed
+- Incorrect method visibility for non-SSE2 implementation of `Counter`.
+  ([#38](https://github.com/metrics-rs/quanta/issues/38))
 
 ## [0.7.0] - 2021-01-03
 ### Changed
@@ -20,23 +23,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   respectively.
 - New free function `quanta::with_clock` for setting an override on the current thread that affects
   calls made to `Instant::now` and `Instant::recent`.
-- New free function `quanta::set_recent` to allow customization of how global recent time is updated.
+- New free function `quanta::set_recent` to allow customization of how global recent time is
+  updated.
 
 ## [0.6.5] - 2020-09-16
 ### Changed
-- Fixed a bug with not being able to start the upkeep thread at all. ([#29](https://github.com/metrics-rs/quanta/issues/29))
+- Fixed a bug with not being able to start the upkeep thread at all.
+  ([#29](https://github.com/metrics-rs/quanta/issues/29))
 
 ## [0.6.4] - 2020-08-27
 ### Added
 - Add `Instant::as_unix_duration` to get the duration of time since the Unix epoch from an
   `Instant`.
-### Changed
+  ### Changed
 - Remove `clocksource` from dependencies and tests as it no longer compiles on stable or nightly.
 
 ## [0.6.3] - 2020-08-03
 ### Changed
 - Publicly expose `Clock::upkeep` for advanced use cases.
-- Relax constraints around checking for multiple sockets. ([#25](https://github.com/metrics-rs/quanta/issues/25))
+- Relax constraints around checking for multiple sockets.
+  ([#25](https://github.com/metrics-rs/quanta/issues/25))
 
 ## [0.6.2] - 2020-07-20
 ### Added
@@ -62,7 +68,8 @@ description for the finer details.  All changes below are part of the aforementi
 
 ## [0.5.2] - 2020-05-01
 ### Changed
-- Fix the logic to figure out when calibration is required. ([#14](https://github.com/metrics-rs/quanta/pull/14))
+- Fix the logic to figure out when calibration is required.
+  ([#14](https://github.com/metrics-rs/quanta/pull/14))
 
 ## [0.5.1] - 2020-04-11
 ### Changed
@@ -70,18 +77,22 @@ description for the finer details.  All changes below are part of the aforementi
 
 ## [0.5.0] - 2020-04-11
 ### Changed
-- Switch to `mach` for macOS/iOS as it was deprecated in `libc`. ([#12](https://github.com/metrics-rs/quanta/pull/12))
-- Switch to `core::arch` for instrinics, and drop the feature flagged configuration to use it. ([#12](https://github.com/metrics-rs/quanta/pull/12))
+- Switch to `mach` for macOS/iOS as it was deprecated in `libc`.
+  ([#12](https://github.com/metrics-rs/quanta/pull/12))
+- Switch to `core::arch` for instrinics, and drop the feature flagged configuration to use it.
+  ([#12](https://github.com/metrics-rs/quanta/pull/12))
 - Switch to `criterion` for benchmarking. ([#12](https://github.com/metrics-rs/quanta/pull/12))
 
 ## [0.4.0] - 2020-02-20
 ### Changed
-- Differentiate between raw and scaled time by adding a new `Instant` type. ([#10](https://github.com/metrics-rs/quanta/pull/10))
+- Differentiate between raw and scaled time by adding a new `Instant` type.
+  ([#10](https://github.com/metrics-rs/quanta/pull/10))
 
 ## [0.2.0] - 2019-03-10
 ### Changed
 - Fixed support for Windows.  It was in a bad way, but actually works correctly now!
-- Switched to Azure Pipelines CI + Cirrus CI, including formatting, tests, and benchmarks, for Linux, macOS, Windows, and FreeBSD.
+- Switched to Azure Pipelines CI + Cirrus CI, including formatting, tests, and benchmarks, for
+  Linux, macOS, Windows, and FreeBSD.
 
 ## [0.1.0] - 2019-01-14
 ### Added
