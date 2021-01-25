@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1611592923762,
+  "lastUpdate": 1611608878367,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -787,6 +787,120 @@ window.BENCHMARK_DATA = {
             "name": "quanta/quanta_start/end_delta",
             "value": 48,
             "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tobz@users.noreply.github.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8096930cdceca061be3f7b00b121ee34c5e3b196",
+          "message": "Merge pull request #37 from metrics-rs/dependabot/cargo/raw-cpuid-9.0\n\nUpdate raw-cpuid requirement from 8.1 to 9.0",
+          "timestamp": "2021-01-25T16:02:01-05:00",
+          "tree_id": "b31a9976b3f3da4cc00cfa842cbe3d54ed4deaec",
+          "url": "https://github.com/metrics-rs/quanta/commit/8096930cdceca061be3f7b00b121ee34c5e3b196"
+        },
+        "date": 1611608877676,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 32,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 63,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 31,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 64,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 33,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 18,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 23,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 45,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start",
+            "value": 25,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start_scaled",
+            "value": 29,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end",
+            "value": 25,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end_scaled",
+            "value": 29,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start/end_delta",
+            "value": 53,
+            "range": "± 1",
             "unit": "ns/iter"
           },
           {
