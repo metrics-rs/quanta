@@ -7,6 +7,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Changed
+- Bumped dependency on `raw-cpuid` to `9.0` in order to deal with a [RustSec
+  advisory](https://rustsec.org/advisories/RUSTSEC-2021-0013).
 
 ## [0.7.1] - 2021-01-24
 ### Fixed
