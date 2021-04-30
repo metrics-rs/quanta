@@ -63,5 +63,5 @@ mach = "0.3"
 winapi = { version = "0.3", features = ["profileapi"] }
 
 [dev-dependencies]
-average = "0.12"
+average = "0.13"
 criterion = "0.3"
