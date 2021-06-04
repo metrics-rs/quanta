@@ -108,10 +108,21 @@
 //! - raw values may time warp
 //! - measurements from the TSC may drift past or behind the comparable reference clock
 //!
+//! # WASM support
+//!
+//! This library can be built for WASM targets, but in this case the resolution
+//! and accuracy of measurements can be limited by the WASM environment. In
+//! particular, when running on the `wasm32-unknown-unknown` target in browsers,
+//! `quanta` will use [windows.performance.now] as a clock. This mean the
+//! accuracy is limited to milliseconds instead of the usual nanoseconds on
+//! other targets. When running within a WASI environment (target
+//! `wasm32-wasi`), the accuracy of the clock depends on the VM implementation.
+//!
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
 //! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
+//! [windows.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
 use atomic_shim::AtomicU64;
 use std::time::Duration;
 use std::{

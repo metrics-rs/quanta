@@ -20,7 +20,8 @@ impl Monotonic {
 #[cfg(all(
     not(target_os = "macos"),
     not(target_os = "ios"),
-    not(target_os = "windows")
+    not(target_os = "windows"),
+    not(target_arch = "wasm32")
 ))]
 impl Monotonic {
     pub fn now(&self) -> u64 {
@@ -73,6 +74,31 @@ impl Monotonic {
             *count.QuadPart() as u64
         };
         raw * self.factor
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+impl Monotonic {
+    pub fn now(&self) -> u64 {
+        let now = web_sys::window()
+            .expect(
+                "failed to find the global Window object, the \
+                        wasm32-unknown-unknown implementation only support \
+                        running in web browsers. Use wasm32-wasi to run \
+                        elsewhere",
+            )
+            .performance()
+            .expect("window.performance is not available")
+            .now();
+        // window.performance.now returns the time in milliseconds
+        return f64::trunc(now * 1000.0) as u64;
+    }
+}
+
+#[cfg(all(target_arch = "wasm32", target_os = "wasi"))]
+impl Monotonic {
+    pub fn now(&self) -> u64 {
+        unsafe { wasi::clock_time_get(wasi::CLOCKID_MONOTONIC, 1).expect("failed to get time") }
     }
 }
 
