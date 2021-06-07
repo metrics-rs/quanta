@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.8.0] - 2021-06-07
+
 ### Removed
 - `Instant::as_unix_duration` as it was added in error.
 - `metrics` feature flag as `metrics-core` is no longer a relevant crate.
