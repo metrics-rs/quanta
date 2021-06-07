@@ -221,6 +221,10 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        ignore = "WASM thread cannot sleep"
+    )]
     fn test_now() {
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
@@ -235,6 +239,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        ignore = "WASM thread cannot sleep"
+    )]
     fn test_recent() {
         // Ensures that the recent global value is zero so that the fallback logic can kick in.
         crate::set_recent(Instant(0));
@@ -258,6 +266,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_mocking() {
         let (clock, mock) = Clock::mock();
         with_clock(&clock, move || {

@@ -646,11 +646,22 @@ fn read_cpuid_family_model() -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::{Clock, Monotonic};
     use average::{Merge, Variance};
 
+    #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+    mod configure_wasm_tests {
+        // until https://github.com/rustwasm/wasm-bindgen/issues/2571 is resolved
+        // these tests will only run in browsers
+        wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+    }
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_mock() {
         let (clock, mock) = Clock::mock();
         assert_eq!(clock.now().as_u64(), 0);
@@ -659,30 +670,50 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_now() {
         let clock = Clock::new();
         assert!(clock.now().as_u64() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_raw() {
         let clock = Clock::new();
         assert!(clock.raw() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_start() {
         let clock = Clock::new();
         assert!(clock.start() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_end() {
         let clock = Clock::new();
         assert!(clock.end() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_scaled() {
         let clock = Clock::new();
         let raw = clock.raw();
@@ -692,6 +723,10 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_reference_source_calibration() {
         let clock = Clock::new();
         let reference = Monotonic::new();
@@ -727,6 +762,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_reference_self_calibration() {
         let reference = Monotonic::new();
 

@@ -155,6 +155,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", ignore)] // WASM is single threaded
     fn test_spawning_second_upkeep() {
         let first = Upkeep::new(Duration::from_millis(250)).start();
         let second = Upkeep::new(Duration::from_millis(250))
