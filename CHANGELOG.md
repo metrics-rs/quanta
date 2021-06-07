@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Removed
+- `Instant::as_unix_duration` as it was added in error.
+- `metrics` feature flag as `metrics-core` is no longer a relevant crate.
+
 ## [0.7.2] - 2021-01-25
 ### Changed
 - Bumped dependency on `raw-cpuid` to `9.0` in order to deal with a [RustSec

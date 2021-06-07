@@ -1,6 +1,3 @@
-#[cfg(feature = "metrics")]
-use metrics_core::AsNanoseconds;
-
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
@@ -8,12 +5,9 @@ use std::time::Duration;
 
 /// A point-in-time wall-clock measurement.
 ///
-/// Represents a time measurement that has been taken by [`Clock`](crate::Clock) and scaled to reference time,
-/// which is relative to the Unix epoch of 1970-01-01T00:00:00Z.
-///
-/// Unlike the stdlib `Instant`, this type has a meaningful difference: it is intended to be opaque, but the
-/// internal value _can_ be accessed.  There are no guarantees here and depending on this value directly is
-/// proceeding at your own risk. ⚠️
+/// Unlike the stdlib `Instant`, this type has a meaningful difference: it is intended to be opaque,
+/// but the internal value _can_ be accessed.  There are no guarantees here and depending on this
+/// value directly is proceeding at your own risk. ⚠️
 ///
 /// An `Instant` is 8 bytes.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -25,8 +19,8 @@ impl Instant {
     /// This method depends on a lazily initialized global clock, which can take up to 200ms to
     /// initialize and calibrate itself.
     ///
-    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed
-    /// to return a monotonically increasing value.
+    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed to
+    /// return a monotonically increasing value.
     pub fn now() -> Instant {
         crate::get_now()
     }
@@ -40,9 +34,9 @@ impl Instant {
     /// The value is updated by running an "upkeep" thread or by calling [`quanta::set_recent`].  An
     /// upkeep thread can be configured and spawned via [`Builder`].
     ///
-    /// If the upkeep thread has not been started, or no value has been set manually, a
-    /// lazily initialized global clock will be used to get the current time.  This clock can take
-    /// up to 200ms to initialize and calibrate itself.
+    /// If the upkeep thread has not been started, or no value has been set manually, a lazily
+    /// initialized global clock will be used to get the current time.  This clock can take up to
+    /// 200ms to initialize and calibrate itself.
     pub fn recent() -> Instant {
         crate::get_recent()
     }
@@ -73,8 +67,8 @@ impl Instant {
             .expect("supplied instant is later than self")
     }
 
-    /// Returns the amount of time elapsed from another instant to this one,
-    /// or `None` if that instant is earlier than this one.
+    /// Returns the amount of time elapsed from another instant to this one, or `None` if that
+    /// instant is earlier than this one.
     ///
     /// # Examples
     ///
@@ -94,8 +88,8 @@ impl Instant {
         self.0.checked_sub(earlier.0).map(Duration::from_nanos)
     }
 
-    /// Returns the amount of time elapsed from another instant to this one,
-    /// or zero duration if that instant is earlier than this one.
+    /// Returns the amount of time elapsed from another instant to this one, or zero duration if
+    /// that instant is earlier than this one.
     ///
     /// # Examples
     ///
@@ -128,11 +122,6 @@ impl Instant {
     /// otherwise.
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
         self.0.checked_sub(duration.as_nanos() as u64).map(Instant)
-    }
-
-    /// Gets this `Instant` as a [`Duration`] since the Unix epoch.
-    pub fn as_unix_duration(&self) -> Duration {
-        Duration::from_nanos(self.0)
     }
 
     /// Gets the inner value of this `Instant`.
@@ -200,13 +189,6 @@ impl Ord for Instant {
 impl fmt::Debug for Instant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
-    }
-}
-
-#[cfg(feature = "metrics")]
-impl AsNanoseconds for Instant {
-    fn as_nanos(&self) -> u64 {
-        self.0
     }
 }
 
