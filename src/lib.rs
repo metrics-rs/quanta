@@ -108,10 +108,21 @@
 //! - raw values may time warp
 //! - measurements from the TSC may drift past or behind the comparable reference clock
 //!
+//! # WASM support
+//!
+//! This library can be built for WASM targets, but in this case the resolution
+//! and accuracy of measurements can be limited by the WASM environment. In
+//! particular, when running on the `wasm32-unknown-unknown` target in browsers,
+//! `quanta` will use [windows.performance.now] as a clock. This mean the
+//! accuracy is limited to milliseconds instead of the usual nanoseconds on
+//! other targets. When running within a WASI environment (target
+//! `wasm32-wasi`), the accuracy of the clock depends on the VM implementation.
+//!
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
 //! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
+//! [windows.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
 use atomic_shim::AtomicU64;
 use std::time::Duration;
 use std::{
@@ -635,11 +646,22 @@ fn read_cpuid_family_model() -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::{Clock, Monotonic};
     use average::{Merge, Variance};
 
+    #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
+    mod configure_wasm_tests {
+        // until https://github.com/rustwasm/wasm-bindgen/issues/2571 is resolved
+        // these tests will only run in browsers
+        wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+    }
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_mock() {
         let (clock, mock) = Clock::mock();
         assert_eq!(clock.now().as_u64(), 0);
@@ -648,30 +670,50 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_now() {
         let clock = Clock::new();
         assert!(clock.now().as_u64() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_raw() {
         let clock = Clock::new();
         assert!(clock.raw() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_start() {
         let clock = Clock::new();
         assert!(clock.start() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_end() {
         let clock = Clock::new();
         assert!(clock.end() > 0);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_scaled() {
         let clock = Clock::new();
         let raw = clock.raw();
@@ -681,6 +723,10 @@ mod tests {
 
     #[test]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_reference_source_calibration() {
         let clock = Clock::new();
         let reference = Monotonic::new();
@@ -716,6 +762,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn test_reference_self_calibration() {
         let reference = Monotonic::new();
 

@@ -48,7 +48,7 @@ ctor = "0.1"
 [target.'cfg(target_arch = "powerpc")'.dependencies]
 ctor = "0.1"
 
-[target.'cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows")))'.dependencies]
+[target.'cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows"), not(target_arch = "wasm32")))'.dependencies]
 libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -60,6 +60,15 @@ mach = "0.3"
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["profileapi"] }
 
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+web-sys = { version = "0.3", features = ["Window", "Performance"] }
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "wasi"))'.dependencies]
+wasi = "0.10"
+
 [dev-dependencies]
 average = "0.12"
 criterion = "0.3"
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
+wasm-bindgen-test = "0.3"
