@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.9.0] - 2021-06-17
+
 ### Added
 - Support for WASM/WASI targets. ([#45](https://github.com/metrics-rs/quanta/pull/45))
 
