@@ -37,10 +37,10 @@ prost-types = { version = "0.7", optional = true }
 atomic-shim = "0.1.0"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
-raw-cpuid = "9.0"
+raw-cpuid = "10.0"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-raw-cpuid = "9.0"
+raw-cpuid = "10.0"
 
 [target.'cfg(target_arch = "mips")'.dependencies]
 ctor = "0.1"
