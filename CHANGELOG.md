@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+- Switched from `atomic-shim` to `crossbeam-utils` for better cross-platform atomic support. ([#52](https://github.com/metrics-rs/quanta/pull/52))
+
 ## [0.9.0] - 2021-06-17
 
 ### Added
