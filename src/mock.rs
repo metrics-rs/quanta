@@ -1,9 +1,6 @@
 #![allow(dead_code)]
-use atomic_shim::AtomicU64;
-use std::{
-    sync::{atomic::Ordering, Arc},
-    time::Duration,
-};
+use crossbeam_utils::atomic::AtomicCell;
+use std::{sync::Arc, time::Duration};
 
 /// Type which can be converted into a nanosecond representation.
 ///
@@ -36,30 +33,28 @@ impl IntoNanoseconds for Duration {
 /// testing that code can handle large shifts in time.
 #[derive(Debug, Clone)]
 pub struct Mock {
-    offset: Arc<AtomicU64>,
+    offset: Arc<AtomicCell<u64>>,
 }
 
 impl Mock {
     pub(crate) fn new() -> Self {
         Self {
-            offset: Arc::new(AtomicU64::new(0)),
+            offset: Arc::new(AtomicCell::new(0)),
         }
     }
 
     /// Increments the time by the given amount.
     pub fn increment<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset
-            .fetch_add(amount.into_nanos(), Ordering::Release);
+        self.offset.fetch_add(amount.into_nanos());
     }
 
     /// Decrements the time by the given amount.
     pub fn decrement<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset
-            .fetch_sub(amount.into_nanos(), Ordering::Release);
+        self.offset.fetch_sub(amount.into_nanos());
     }
 
     /// Gets the current value of this `Mock`.
     pub fn value(&self) -> u64 {
-        self.offset.load(Ordering::Acquire)
+        self.offset.load()
     }
 }

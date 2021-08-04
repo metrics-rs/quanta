@@ -123,12 +123,9 @@
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
 //! [windows.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
-use atomic_shim::AtomicU64;
+use crossbeam_utils::atomic::AtomicCell;
 use std::time::Duration;
-use std::{
-    cell::RefCell,
-    sync::{atomic::Ordering, Arc},
-};
+use std::{cell::RefCell, sync::Arc};
 
 use once_cell::sync::OnceCell;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -149,19 +146,7 @@ use self::stats::Variance;
 
 static GLOBAL_CLOCK: OnceCell<Clock> = OnceCell::new();
 
-#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
-mod atomic_compat {
-    use super::AtomicU64;
-    use ctor::ctor;
-
-    #[ctor]
-    pub static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
-}
-#[cfg(any(target_arch = "mips", target_arch = "powerpc"))]
-use self::atomic_compat::GLOBAL_RECENT;
-
-#[cfg(not(any(target_arch = "mips", target_arch = "powerpc")))]
-static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
+static GLOBAL_RECENT: AtomicCell<u64> = AtomicCell::new(0);
 
 static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
@@ -182,7 +167,7 @@ const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
 #[derive(Debug)]
 enum ClockType {
     Monotonic(Monotonic),
-    Counter(AtomicU64, Monotonic, Counter, Calibration),
+    Counter(AtomicCell<u64>, Monotonic, Counter, Calibration),
     Mock(Arc<Mock>),
 }
 
@@ -317,7 +302,7 @@ impl Clock {
                 calibration.calibrate(&reference, &source);
                 calibration
             });
-            ClockType::Counter(AtomicU64::new(0), reference, source, *calibration)
+            ClockType::Counter(AtomicCell::new(0), reference, source, *calibration)
         } else {
             ClockType::Monotonic(reference)
         };
@@ -351,7 +336,8 @@ impl Clock {
                 let now = counter.now();
                 // Update the last timestamp with `now`, if `now` is greater
                 // than the current value.
-                let last = last.fetch_max(now, Ordering::AcqRel);
+                // TODO: replace with `AtomicCell::fetch_max` once `crossbeam-utils` implements it.
+                let last = last.fetch_update(|current| Some(current.max(now))).unwrap();
                 // `fetch_max` always returns the previous value, so we need to
                 // see which is *actually* the max.
                 let actual = std::cmp::max(now, last);
@@ -476,7 +462,7 @@ impl Clock {
     pub fn recent(&self) -> Instant {
         match &self.inner {
             ClockType::Mock(mock) => Instant(mock.value()),
-            _ => Instant(GLOBAL_RECENT.load(Ordering::Relaxed)),
+            _ => Instant(GLOBAL_RECENT.load()),
         }
     }
 
@@ -485,7 +471,7 @@ impl Clock {
     /// Most callers should use the existing [`Builder`] machinery for spawning a background thread
     /// to handle upkeep, rather than calling [`upkeep`] directly.
     pub fn upkeep(value: Instant) {
-        GLOBAL_RECENT.store(value.0, Ordering::Release);
+        GLOBAL_RECENT.store(value.0);
     }
 }
 
@@ -502,7 +488,7 @@ impl Clone for ClockType {
             ClockType::Mock(mock) => ClockType::Mock(mock.clone()),
             ClockType::Monotonic(monotonic) => ClockType::Monotonic(monotonic.clone()),
             ClockType::Counter(last, monotonic, counter, calibration) => ClockType::Counter(
-                AtomicU64::new(last.load(Ordering::Acquire)),
+                AtomicCell::new(last.load()),
                 monotonic.clone(),
                 counter.clone(),
                 *calibration,
@@ -530,7 +516,7 @@ pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
 /// recent time is updated.  For example, programs using an asynchronous runtime may prefer to
 /// schedule a task that does the updating, avoiding an extra thread.
 pub fn set_recent(instant: Instant) {
-    GLOBAL_RECENT.store(instant.as_u64(), Ordering::Release);
+    GLOBAL_RECENT.store(instant.as_u64());
 }
 
 #[inline]
@@ -550,7 +536,7 @@ pub(crate) fn get_recent() -> Instant {
     //
     // Given that global recent time shouldn't ever be getting _actually_ updated in tests, this
     // should be a reasonable trade-off.
-    let recent = GLOBAL_RECENT.load(Ordering::Acquire);
+    let recent = GLOBAL_RECENT.load();
     if recent != 0 {
         Instant(recent)
     } else {
