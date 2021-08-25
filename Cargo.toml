@@ -34,13 +34,13 @@ prost = ["prost-types"]
 [dependencies]
 once_cell = "1.4"
 prost-types = { version = "0.7", optional = true }
-crossbeam-utils = "0.8"
+crossbeam-utils = "0.8.5"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
-raw-cpuid = "9.0"
+raw-cpuid = "10.2"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-raw-cpuid = "9.0"
+raw-cpuid = "10.2"
 
 [target.'cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows"), not(target_arch = "wasm32")))'.dependencies]
 libc = "0.2"
@@ -61,7 +61,7 @@ web-sys = { version = "0.3", features = ["Window", "Performance"] }
 wasi = "0.10"
 
 [dev-dependencies]
-average = "0.12"
+average = "0.13"
 criterion = "0.3"
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]

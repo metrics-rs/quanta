@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+- Pinned `crossbeam-utils` to `v0.8.5` where `AtomicCell::fetch_update` was introduced to fix, which
+  fixes broken builds where Cargo chooses a version between `0.8.0` and `0.8.5`.
+- Update `raw-cpuid` to `10.2` and `average` to `0.13`.
+
 ## [0.9.1] - 2021-08-12
 
 ### Changed

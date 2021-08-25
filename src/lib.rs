@@ -604,14 +604,14 @@ fn read_cpuid_mfg() -> String {
     let cpuid = CpuId::new();
     cpuid
         .get_vendor_info()
-        .map_or_else(String::new, |vi| vi.as_string().to_owned())
+        .map_or_else(String::new, |vi| vi.as_str().to_owned())
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn read_cpuid_nonstop_tsc() -> bool {
     let cpuid = CpuId::new();
     cpuid
-        .get_extended_function_info()
+        .get_advanced_power_mgmt_info()
         .map_or(false, |efi| efi.has_invariant_tsc())
 }
 
@@ -619,7 +619,7 @@ fn read_cpuid_nonstop_tsc() -> bool {
 fn read_cpuid_rdtscp_support() -> bool {
     let cpuid = CpuId::new();
     cpuid
-        .get_extended_function_info()
+        .get_extended_processor_and_feature_identifiers()
         .map_or(false, |efi| efi.has_rdtscp())
 }
 
