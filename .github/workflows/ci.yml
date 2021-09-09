@@ -35,6 +35,29 @@ jobs:
         override: true
     - name: Run Tests
       run: cargo test --no-default-features --features=prost -- --test-threads=1
+  cross-test:
+    name: Test ${{ matrix.rust_version }}/${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust_version: ['stable']
+        target:
+          - armv5te-unknown-linux-gnueabi
+          - mips-unknown-linux-gnu
+          - mipsel-unknown-linux-gnu
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust ${{ matrix.rust_version }}
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: ${{ matrix.rust_version }}
+        target: ${{ matrix.target }}
+        override: true
+    - uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: test
+        args: --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
