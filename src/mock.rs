@@ -45,12 +45,18 @@ impl Mock {
 
     /// Increments the time by the given amount.
     pub fn increment<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset.fetch_add(amount.into_nanos());
+        let amount = amount.into_nanos();
+        self.offset
+            .fetch_update(|current| Some(current + amount))
+            .unwrap();
     }
 
     /// Decrements the time by the given amount.
     pub fn decrement<N: IntoNanoseconds>(&self, amount: N) {
-        self.offset.fetch_sub(amount.into_nanos());
+        let amount = amount.into_nanos();
+        self.offset
+            .fetch_update(|current| Some(current - amount))
+            .unwrap();
     }
 
     /// Gets the current value of this `Mock`.
