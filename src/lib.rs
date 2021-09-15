@@ -681,29 +681,67 @@ pub mod tests {
         let reference = Monotonic::new();
 
         let loops = 10000;
-        let samples = 1024;
 
         let mut overall = Variance::new();
-        let mut deltas = Vec::with_capacity(samples);
-        deltas.reserve(samples);
+        let mut src_samples = [0u64; 1024];
+        let mut ref_samples = [0u64; 1024];
 
         for _ in 0..loops {
-            deltas.clear();
-            for _ in 0..samples {
-                let qstart = clock.now();
-                let rstart = reference.now();
-
-                deltas.push(rstart.saturating_sub(qstart.as_u64()));
+            for i in 0..1024 {
+                src_samples[i] = clock.now().as_u64();
+                ref_samples[i] = reference.now();
             }
 
-            let local = deltas.iter().map(|i| *i as f64).collect::<Variance>();
+            let mut last = None;
+            let is_src_monotonic = src_samples.iter().all(|n| match last {
+                None => {
+                    last = Some(n);
+                    true
+                }
+                Some(on) => {
+                    if n >= on {
+                        last = Some(n);
+                        true
+                    } else {
+                        false
+                    }
+                }
+            });
+            assert!(is_src_monotonic);
+
+            let mut last = None;
+            let is_ref_monotonic = ref_samples.iter().all(|n| match last {
+                None => {
+                    last = Some(n);
+                    true
+                }
+                Some(on) => {
+                    if n >= on {
+                        last = Some(n);
+                        true
+                    } else {
+                        false
+                    }
+                }
+            });
+            assert!(is_ref_monotonic);
+
+            let local = src_samples
+                .iter()
+                .zip(ref_samples.iter())
+                .map(|(s, r)| (*s as f64, *r as f64))
+                .map(|(s, r)| (r - s).abs())
+                .collect::<Variance>();
+
             overall.merge(&local);
         }
 
         println!(
-            "reference/source delta: mean={} error={}",
+            "reference/source delta: mean={} error={} mean-var={} samples={}",
             overall.mean(),
-            overall.error()
+            overall.error(),
+            overall.variance_of_mean(),
+            overall.len(),
         );
 
         // If things are out of sync more than 1000ns, something is likely scaled wrong.
@@ -711,6 +749,7 @@ pub mod tests {
     }
 
     #[test]
+    #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -739,13 +778,14 @@ pub mod tests {
         }
 
         println!(
-            "reference/reference inter-call delta: mean={} error={}",
+            "reference/reference inter-call delta: mean={} error={} mean-var={}",
             overall.mean(),
-            overall.error()
+            overall.error(),
+            overall.variance_of_mean()
         );
 
-        // If things are out of sync more than 1000ns, then I dunno, because our reference is
-        // supposed to be reliable. 😬
-        assert!(overall.mean() < 1000.0);
+        // We should be able to call the reference clock, back-to-back, within 2000 nanoseconds.  If
+        // it's slower than that, something is probably amiss on the system the test is running under.
+        assert!(overall.mean() < 2000.0);
     }
 }
