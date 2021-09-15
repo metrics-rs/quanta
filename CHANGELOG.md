@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+- Simplified how TSC/RDTSC suppoort is detected, which should avoid some situations where it was
+  assumed to be present, but actually was not.
+
 ## [0.9.2] - 2021-08-25
 
 ### Changed

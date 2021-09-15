@@ -189,6 +189,12 @@ impl Calibration {
         }
     }
 
+    fn scale_src_to_ref(&self, src_raw: u64) -> u64 {
+        let delta = src_raw.saturating_sub(self.src_time);
+        let scaled = mul_div_po2_u64(delta, self.scale_factor, self.scale_shift);
+        scaled + self.ref_time
+    }
+
     fn calibrate(&mut self, reference: &Monotonic, source: &Counter) {
         // future improvement: read the TSC frequency directly with something like the
         // code in this PR: https://github.com/hermitcore/uhyve/pull/24
@@ -221,7 +227,7 @@ impl Calibration {
 
             let r_time = reference.now();
             let s_raw = source.now();
-            let s_time = scale_src_to_ref(s_raw, &self);
+            let s_time = self.scale_src_to_ref(s_raw);
             variance.add(s_time as f64 - r_time as f64);
 
             // If we've collected enough samples, check what the mean and mean error are.  If we're
@@ -294,8 +300,7 @@ impl Clock {
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
         let reference = Monotonic::new();
-        let constant_tsc = has_constant_or_better_tsc();
-        let inner = if constant_tsc {
+        let inner = if has_tsc_support() {
             let source = Counter::new();
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
                 let mut calibration = Calibration::new();
@@ -414,7 +419,7 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn scaled(&self, value: u64) -> Instant {
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => scale_src_to_ref(value, &calibration),
+            ClockType::Counter(_, _, _, calibration) => scale_src_to_ref(value, calibration),
             _ => value,
         };
 
@@ -563,48 +568,14 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
-fn has_constant_or_better_tsc() -> bool {
-    // All of this special handling for CPU manufacturers, specific family/model combinations, etc,
-    // is derived from the Linux kernel, master branch, as of 2020-05-19.
-
-    // We limit ourselves to Intel, AMD, and Centaur.  There are technically other CPUs that
-    // seemingly support constant or better TSC, but there's no chance in hell I have access to
-    // test that out.  People can reach out if they want support.
-    let cpu_mfg = read_cpuid_mfg();
-    match cpu_mfg.as_str() {
-        "GenuineIntel" => {
-            // All Intel processors from the Core microarchitecture and on.
-            if read_cpuid_family_model() >= 0x60E {
-                return true;
-            }
-        }
-        "AuthenticAMD" => {}
-        "CentaurHauls" => {
-            // VIA Nano and above should at least have constant TSC.
-            if read_cpuid_family_model() >= 0x60F {
-                return true;
-            }
-        }
-        // Unknown/unsupported processor.
-        _ => return false,
-    }
-
-    // Check to make sure we have nonstop TSC + RDTSCP support.
+fn has_tsc_support() -> bool {
     read_cpuid_nonstop_tsc() && read_cpuid_rdtscp_support()
 }
 
 #[allow(dead_code)]
 #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
-fn has_constant_or_better_tsc() -> bool {
+fn has_tsc_support() -> bool {
     false
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn read_cpuid_mfg() -> String {
-    let cpuid = CpuId::new();
-    cpuid
-        .get_vendor_info()
-        .map_or_else(String::new, |vi| vi.as_str().to_owned())
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -621,14 +592,6 @@ fn read_cpuid_rdtscp_support() -> bool {
     cpuid
         .get_extended_processor_and_feature_identifiers()
         .map_or(false, |efi| efi.has_rdtscp())
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn read_cpuid_family_model() -> u32 {
-    let cpuid = CpuId::new();
-    cpuid.get_feature_info().map_or(0, |fi| {
-        (fi.family_id() as u32) << 8 | (fi.extended_model_id() as u32) << 4 | fi.model_id() as u32
-    })
 }
 
 #[cfg(test)]
@@ -718,29 +681,67 @@ pub mod tests {
         let reference = Monotonic::new();
 
         let loops = 10000;
-        let samples = 1024;
 
         let mut overall = Variance::new();
-        let mut deltas = Vec::with_capacity(samples);
-        deltas.reserve(samples);
+        let mut src_samples = [0u64; 1024];
+        let mut ref_samples = [0u64; 1024];
 
         for _ in 0..loops {
-            deltas.clear();
-            for _ in 0..samples {
-                let qstart = clock.now();
-                let rstart = reference.now();
-
-                deltas.push(rstart.saturating_sub(qstart.as_u64()));
+            for i in 0..1024 {
+                src_samples[i] = clock.now().as_u64();
+                ref_samples[i] = reference.now();
             }
 
-            let local = deltas.iter().map(|i| *i as f64).collect::<Variance>();
+            let mut last = None;
+            let is_src_monotonic = src_samples.iter().all(|n| match last {
+                None => {
+                    last = Some(n);
+                    true
+                }
+                Some(on) => {
+                    if n >= on {
+                        last = Some(n);
+                        true
+                    } else {
+                        false
+                    }
+                }
+            });
+            assert!(is_src_monotonic);
+
+            let mut last = None;
+            let is_ref_monotonic = ref_samples.iter().all(|n| match last {
+                None => {
+                    last = Some(n);
+                    true
+                }
+                Some(on) => {
+                    if n >= on {
+                        last = Some(n);
+                        true
+                    } else {
+                        false
+                    }
+                }
+            });
+            assert!(is_ref_monotonic);
+
+            let local = src_samples
+                .iter()
+                .zip(ref_samples.iter())
+                .map(|(s, r)| (*s as f64, *r as f64))
+                .map(|(s, r)| (r - s).abs())
+                .collect::<Variance>();
+
             overall.merge(&local);
         }
 
         println!(
-            "reference/source delta: mean={} error={}",
+            "reference/source delta: mean={} error={} mean-var={} samples={}",
             overall.mean(),
-            overall.error()
+            overall.error(),
+            overall.variance_of_mean(),
+            overall.len(),
         );
 
         // If things are out of sync more than 1000ns, something is likely scaled wrong.
@@ -748,6 +749,7 @@ pub mod tests {
     }
 
     #[test]
+    #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -776,13 +778,14 @@ pub mod tests {
         }
 
         println!(
-            "reference/reference inter-call delta: mean={} error={}",
+            "reference/reference inter-call delta: mean={} error={} mean-var={}",
             overall.mean(),
-            overall.error()
+            overall.error(),
+            overall.variance_of_mean()
         );
 
-        // If things are out of sync more than 1000ns, then I dunno, because our reference is
-        // supposed to be reliable. 😬
-        assert!(overall.mean() < 1000.0);
+        // We should be able to call the reference clock, back-to-back, within 2000 nanoseconds.  If
+        // it's slower than that, something is probably amiss on the system the test is running under.
+        assert!(overall.mean() < 2000.0);
     }
 }
