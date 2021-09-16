@@ -36,11 +36,21 @@ The API documentation of this library can be found at [docs.rs/quanta](https://d
 
 ## platform / architecture support
 
-For platforms, we have tier 1 support for Linux, Windows, and macOS/iOS.  Platforms such as Solaris or various BSDs have tier 2.5 support: `quanta` should work on them by virtue of depending on `libc`, but we don't test or build on these platforms as all.
+For most major platforms -- Linux, Windows, and macOS -- with processors made around or after 2008,
+you should have no problems using `quanta` with full TSC support.  `quanta` will always fallback to
+the included stdlib timing facilities if TSC support is not present.  The biggest caveat to this, as
+evidenced in the compatibility matrix below, is that we only support the TSC  on x86/x86_64 platforms.
 
-Both x86/x86-64 and SSE2 support are checked for at compile-time, so compiler flags must be set
-correctly.  Further checks will happen at runtime to assert that the TSC source itself is stable
-enough for taking measurements, and if so, will be utilized.
+
+| Platform             | stdlib fallback | TSC support? | CI tests? |
+|----------------------|-----------------|--------------|-----------|
+| Linux (x86/x86_64)   | ✅               | ✅           | ✅        |
+| Linux (MIPS/ARM)     | ✅               | ❌           | ✅        |
+| Windows (x86/x86_64) | ✅               | ✅           | ✅        |
+| Windows (ARM)        | ✅               | ❌           | ❌        |
+| macOS (x86/x86_64)   | ✅               | ✅           | ✅        |
+| macOS (ARM)          | ✅               | ❌           | ❌        |
+| iOS (ARM)            | ✅               | ❌           | ❌        |
 
 ## performance
 

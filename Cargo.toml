@@ -6,10 +6,10 @@ edition = "2018"
 
 license = "MIT"
 
-description = "high-speed timing facility"
+description = "high-speed timing library"
 
-homepage = "https://github.com/nuclearfurnace/quanta"
-repository = "https://github.com/nuclearfurnace/quanta"
+homepage = "https://github.com/metrics-rs/quanta"
+repository = "https://github.com/metrics-rs/quanta"
 documentation = "https://docs.rs/quanta"
 
 readme = "README.md"

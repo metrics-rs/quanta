@@ -8,9 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+- CI tests for MIPS/ARM. ([#55](https://github.com/metrics-rs/quanta/pull/55))
+
 ### Changed
+- Fixed compilation issue with `Mock` on MIPS/ARM. ([#55](https://github.com/metrics-rs/quanta/pull/55))
 - Simplified how TSC/RDTSC suppoort is detected, which should avoid some situations where it was
-  assumed to be present, but actually was not.
+  assumed to be present, but actually was not. ([#57](https://github.com/metrics-rs/quanta/pull/57))
 
 ## [0.9.2] - 2021-08-25
 
