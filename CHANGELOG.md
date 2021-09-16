@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.9.3] - 2021-09-16
+
 ### Added
 - CI tests for MIPS/ARM. ([#55](https://github.com/metrics-rs/quanta/pull/55))
 
