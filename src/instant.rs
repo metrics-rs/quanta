@@ -128,6 +128,11 @@ impl Instant {
     pub fn as_u64(&self) -> u64 {
         self.0
     }
+
+    /// Constructs an `Instant` from a raw `u64`.
+    pub fn from_u64(raw: u64) -> Instant {
+        Instant(raw)
+    }
 }
 
 impl Add<Duration> for Instant {
