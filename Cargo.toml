@@ -33,7 +33,7 @@ prost = ["prost-types"]
 
 [dependencies]
 once_cell = "1.4"
-prost-types = { version = "0.8", optional = true }
+prost-types = { version = "0.9", optional = true }
 crossbeam-utils = "0.8.5"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
