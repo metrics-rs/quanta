@@ -6,9 +6,7 @@ use std::time::Duration;
 /// A point-in-time wall-clock measurement.
 ///
 /// Mimics most of the functionality of [`std::time::Instant`] but provides an additional method for
-/// using the "[recent][recent]" feature of `quanta`.
-///
-/// [recent]:
+/// using the "recent time" feature of `quanta`.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
@@ -18,8 +16,10 @@ impl Instant {
     /// This method depends on a lazily initialized global clock, which can take up to 200ms to
     /// initialize and calibrate itself.
     ///
-    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed to
+    /// This method is the spiritual equivalent of [`Instant::now`][instant_now].  It is guaranteed to
     /// return a monotonically increasing value.
+    ///
+    /// [instant_now]: std::time::Instant::now
     pub fn now() -> Instant {
         crate::get_now()
     }
@@ -30,12 +30,15 @@ impl Instant {
     /// time.  Instead of querying the underlying source clock directly, a shared, global value is
     /// read directly without the need to scale to reference time.
     ///
-    /// The value is updated by running an "upkeep" thread or by calling [`quanta::set_recent`].  An
-    /// upkeep thread can be configured and spawned via [`Builder`].
+    /// The value is updated by running an "upkeep" thread or by calling [`set_recent`][set_recent].  An
+    /// upkeep thread can be configured and spawned via [`Upkeep`][upkeep].
     ///
     /// If the upkeep thread has not been started, or no value has been set manually, a lazily
     /// initialized global clock will be used to get the current time.  This clock can take up to
     /// 200ms to initialize and calibrate itself.
+    ///
+    /// [set_recent]: crate::set_recent
+    /// [upkeep]: crate::Upkeep
     pub fn recent() -> Instant {
         crate::get_recent()
     }

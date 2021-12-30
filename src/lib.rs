@@ -130,6 +130,7 @@
 //! then the system is suspended, and then another measurement is taken, the difference between
 //! those the two would not include the time the system was in suspend.
 //!
+//! [tsc]: https://en.wikipedia.org/wiki/Time_Stamp_Counter
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
 //! [mach_absolute_time]: https://developer.apple.com/documentation/kernel/1462446-mach_absolute_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
@@ -485,12 +486,14 @@ impl Clock {
     /// read directly without the need to scale to reference time.
     ///
     /// The upkeep thread must be started in order to update the time.  You can read the
-    /// documentation for [`Builder`] for more information on starting the upkeep thread, as well
-    /// as the details of the "current time" mechanism.
+    /// documentation for [`Upkeep`][upkeep] for more information on starting the upkeep thread, as
+    /// well as the details of the "current time" mechanism.
     ///
     /// If the upkeep thread has not been started, the return value will be `0`.
     ///
     /// Returns an [`Instant`].
+    ///
+    /// [upkeep]: crate::Upkeep
     pub fn recent(&self) -> Instant {
         match &self.inner {
             ClockType::Mock(mock) => Instant(mock.value()),
