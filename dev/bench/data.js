@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1631799597701,
+  "lastUpdate": 1640894719816,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -2382,6 +2382,120 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_start/end_delta",
             "value": 56,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tobz@users.noreply.github.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fbf383a33d7836d7303dd3aa8d9627e17cd613da",
+          "message": "Merge pull request #62 from metrics-rs/better-docs-about-suspend\n\nStrong documentation around guarantees, cleaning up API, better calibration, and other stuff.",
+          "timestamp": "2021-12-30T15:00:16-05:00",
+          "tree_id": "ef9241118a7631191287c95a840deb795d6188d7",
+          "url": "https://github.com/metrics-rs/quanta/commit/fbf383a33d7836d7303dd3aa8d9627e17cd613da"
+        },
+        "date": 1640894719288,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 60,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 57,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 31,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 59,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start",
+            "value": 26,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start_scaled",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end",
+            "value": 26,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_end_scaled",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_start/end_delta",
+            "value": 58,
             "range": "± 0",
             "unit": "ns/iter"
           },
