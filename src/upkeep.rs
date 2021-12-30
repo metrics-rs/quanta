@@ -1,4 +1,4 @@
-use crate::Clock;
+use crate::{set_recent, Clock};
 use std::{
     fmt, io,
     sync::{
@@ -94,9 +94,14 @@ impl Upkeep {
 
     /// Start the upkeep thread, periodically updating the global coarse time.
     ///
-    /// If the return value is [`Ok(handle)`], then the thread was spawned successfully and can be
-    /// stopped by dropping the returned handle.  Otherwise, [`Err`] contains the error that was
-    /// returned when trying to spawn the thread.
+    /// [`Handle`] represents a drop guard for the upkeep thread if it is successfully spawned.
+    /// Dropping the handle will also instruct the upkeep thread to stop and exist, so the handle
+    /// must be held while the upkeep thread should continue to run.
+    ///
+    /// # Errors
+    ///
+    /// If either an existing upkeep thread is running, or there was an issue when attempting to
+    /// spawn the upkeep thread, an error variant will be returned describing the error.
     pub fn start(self) -> Result<Handle, Error> {
         // If another upkeep thread is running, inform the caller.
         let _ = GLOBAL_UPKEEP_RUNNING
@@ -113,8 +118,7 @@ impl Upkeep {
             .name("quanta-upkeep".to_string())
             .spawn(move || {
                 while !their_done.load(Ordering::Acquire) {
-                    let now = clock.now();
-                    Clock::upkeep(now);
+                    set_recent(clock.now());
 
                     thread::sleep(interval);
                 }
@@ -142,7 +146,7 @@ impl Drop for Handle {
         self.done.store(true, Ordering::Release);
 
         if let Some(handle) = self.handle.take() {
-            let _ = handle
+            let _result = handle
                 .join()
                 .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to stop upkeep thread"));
         }

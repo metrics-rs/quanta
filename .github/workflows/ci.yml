@@ -18,7 +18,29 @@ jobs:
         override: true
         components: rustfmt, clippy
     - name: Check Formatting
-      run: cargo fmt --all -- --check
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+  feature-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - name: Install cargo-hack
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: cargo-hack
+    - name: Check Feature Matrix
+      uses: actions-rs/cargo@v1
+      with:
+        command: hack
+        args: build --all --all-targets --feature-powerset
   test:
     name: Test ${{ matrix.rust_version }}/${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -61,6 +83,23 @@ jobs:
         use-cross: true
         command: test
         args: --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Rust Nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        components: rust-docs
+    - name: Check Docs
+      uses: actions-rs/cargo@v1
+      with:
+        command: doc
+        args: --all-features --workspace --exclude=metrics-observer --no-deps
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

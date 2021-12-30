@@ -1,18 +1,18 @@
 /// Estimates the arithmetic mean (and the error) for a set of samples.
 ///
-/// This type is written and maintained internally as it is trivial to implement and doesn't
-/// warrant a separate dependency.  As well, we add some features like exposing the sample count,
+/// This type is written and maintained internally as it is trivial to implement and doesn't warrant
+/// a separate dependency.  As well, we add some features like exposing the sample count,
 /// calculating the mean + error value, etc, that existing crates don't do.
 ///
-/// Based on Welford's algorithm: computes the mean incrementally, with constant time and
-/// space complexity.
+/// Based on [Welford's algorithm][welfords] which computes the mean incrementally, with constant
+/// time and space complexity.
 ///
-/// https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
+/// [welfords]: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford%27s_online_algorithm
 #[derive(Default)]
 pub(crate) struct Variance {
     mean: f64,
+    mean2: f64,
     n: u64,
-    sum_sq: f64,
 }
 
 impl Variance {
@@ -20,9 +20,9 @@ impl Variance {
     pub fn add(&mut self, sample: f64) {
         self.n += 1;
         let n_f = self.n as f64;
-        let delta = (sample - self.mean) / self.n as f64;
-        self.mean += delta;
-        self.sum_sq += delta * delta * n_f * (n_f - 1.0);
+        let delta_sq = (sample - self.mean).powi(2);
+        self.mean2 += ((n_f - 1.0) * delta_sq) / n_f;
+        self.mean += (sample - self.mean) / n_f;
     }
 
     #[inline]
@@ -37,14 +37,14 @@ impl Variance {
         }
 
         let n_f = self.n as f64;
-        ((self.sum_sq / (n_f - 1.0)) / n_f).sqrt()
+        let sd = (self.mean2 / (n_f - 1.0)).sqrt();
+        sd / n_f.sqrt()
     }
 
     #[inline]
-    pub fn mean_with_error(&self) -> u64 {
+    pub fn mean_with_error(&self) -> f64 {
         let mean = self.mean.abs();
-        let total = mean + self.mean_error().abs();
-        total as u64
+        mean + self.mean_error().abs()
     }
 
     #[inline]
@@ -55,5 +55,24 @@ impl Variance {
     #[inline]
     pub fn samples(&self) -> u64 {
         self.n
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Variance;
+
+    #[test]
+    fn basic() {
+        let inputs = &[5.0, 10.0, 12.0, 15.0, 20.0];
+        let mut variance = Variance::default();
+        for input in inputs {
+            variance.add(*input);
+        }
+
+        assert_eq!(variance.mean(), 12.4);
+
+        let expected_mean_error = 2.5019;
+        assert!((variance.mean_error() - expected_mean_error).abs() < 0.001);
     }
 }

@@ -1,21 +1,14 @@
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 use core::arch::x86_64::{__rdtscp, _mm_lfence, _rdtsc};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Counter;
-
-impl Counter {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Counter {}
-    }
-}
 
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 impl Counter {
     pub fn now(&self) -> u64 {
         unsafe {
-            _mm_lfence();
+            //_mm_lfence();
             _rdtsc()
         }
     }
@@ -30,9 +23,9 @@ impl Counter {
     }
 
     pub fn end(&self) -> u64 {
-        let mut _aux: u32 = 0;
+        let mut aux: u32 = 0;
         unsafe {
-            let result = __rdtscp(&mut _aux as *mut _);
+            let result = __rdtscp(&mut aux as *mut _);
             _mm_lfence();
             result
         }

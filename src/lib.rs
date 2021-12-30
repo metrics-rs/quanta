@@ -5,17 +5,18 @@
 //! available, using the Time Stamp Counter feature found on modern CPUs.
 //!
 //! # Design
+//!
 //! Internally, `quanta` maintains the concept of two potential clock sources: a reference clock and
 //! a source clock.
 //!
 //! The reference clock is provided by the OS, and always available.  It is equivalent to what is
-//! provided by the standard library in terms of the underlying system calls being made.  As it
-//! uses the native timing facilities provided by the operating system, we ultimately depend on the
-//! OS itself to give us a stable and correct value.
+//! provided by the standard library in terms of the underlying system calls being made.  As it uses
+//! the native timing facilities provided by the operating system, we ultimately depend on the OS
+//! itself to give us a stable and correct value.
 //!
-//! The source clock is a potential clock source based on the Time Stamp Counter feature found on
-//! modern CPUs.  If the TSC feature is not present or is not reliable enough, `quanta` will
-//! transparently utilize the reference clock instead.
+//! The source clock is a potential clock source based on the [Time Stamp Counter][tsc] feature
+//! found on modern CPUs.  If the TSC feature is not present or is not reliable enough, `quanta`
+//! will transparently utilize the reference clock instead.
 //!
 //! Depending on the underlying processor(s) in the system, `quanta` will figure out the most
 //! accurate/efficient way to calibrate the source clock to the reference clock in order to provide
@@ -24,10 +25,13 @@
 //! Details on TSC support, and calibration, are detailed below.
 //!
 //! # Features
-//! Beyond simply taking measurements of the current time, `quanta` provides features for more easily
-//! working with clocks, as well as being able to enhance performance further:
+//!
+//! Beyond simply taking measurements of the current time, `quanta` provides features for more
+//! easily working with clocks, as well as being able to enhance performance further:
 //! - `Clock` can be mocked for testing
 //! - globally accessible "recent" time with amortized overhead
+//!
+//! ## Mocked time
 //!
 //! For any code that uses a `Clock`, a mocked version can be substituted.  This allows for
 //! application authors to control the time in tests, which allows simulating not only the normal
@@ -35,34 +39,48 @@
 //! corner cases in logic, etc.  Creating a mocked clock can be acheived with [`Clock::mock`], and
 //! [`Mock`] contains more details on mock usage.
 //!
+//! ## Coarsely-updated, or recent, time
+//!
 //! `quanta` also provides a "recent" time feature, which allows a slightly-delayed version of time
 //! to be provided to callers, trading accuracy for speed of access.  An upkeep thread is spawned,
 //! which is responsible for taking measurements and updating the global recent time. Callers then
-//! can access the cached value by calling `Clock::recent`.  This interface can be 4-10x faster
-//! than directly calling `Clock::now`, even when TSC support is available.  As the upkeep thread
-//! is the only code updating the recent time, the accuracy of the value given to callers is
-//! limited by how often the upkeep thread updates the time, thus the trade off between accuracy
-//! and speed of access.
+//! can access the cached value by calling `Clock::recent`.  This interface can be 4-10x faster than
+//! directly calling `Clock::now`, even when TSC support is available.  As the upkeep thread is the
+//! only code updating the recent time, the accuracy of the value given to callers is limited by how
+//! often the upkeep thread updates the time, thus the trade off between accuracy and speed of
+//! access.
 //!
 //! # Feature Flags
-//! `quanta` comes with feature flags that enable convenient conversions to time types in
-//! other popular crates, such as:
+//!
+//! `quanta` comes with feature flags that enable convenient conversions to time types in other
+//! popular crates, such as:
 //! - `prost` - provides an implementation into [`Timestamp`][prost_types_timestamp] from
-//! `prost_types`
+//!   `prost_types`
 //!
 //! # Platform Support
+//!
 //! At a high level, `quanta` carries support for most major operating systems out of the box:
-//! - Windows ([QueryPerformanceCounter])
-//! - macOS/OS X/iOS ([mach_continuous_time])
-//! - Linux/*BSD/Solaris ([clock_gettime])
+//! - Windows ([`QueryPerformanceCounter`][QueryPerformanceCounter])
+//! - macOS/OS X/iOS ([`mach_absolute_time`][mach_absolute_time])
+//! - Linux/*BSD/Solaris ([`clock_gettime`][clock_gettime])
 //!
 //! These platforms are supported in the "reference" clock sense, and support for using the Time
 //! Stamp Counter as a clocksource is more subtle, and explained below.
 //!
-//! # Time Stamp Counter support
-//! Accessing the TSC requires being on the x86_64 architecture, with access to SSE2. Additionally,
-//! the processor must support either constant or nonstop/invariant TSC.  This ensures that the TSC
-//! ticks at a constant rate which can be easily scaled.
+//! ## WASM support
+//!
+//! This library can be built for WASM targets, but in this case the resolution and accuracy of
+//! measurements can be limited by the WASM environment. In particular, when running on the
+//! `wasm32-unknown-unknown` target in browsers, `quanta` will use [windows.performance.now] as a
+//! clock. This mean the accuracy is limited to milliseconds instead of the usual nanoseconds on
+//! other targets. When running within a WASI environment (target `wasm32-wasi`), the accuracy of
+//! the clock depends on the VM implementation.
+//!
+//! # TSC Support
+//!
+//! Accessing the TSC requires being on the `x86_64` architecture, with access to SSE2.
+//! Additionally, the processor must support either constant or nonstop/invariant TSC.  This ensures
+//! that the TSC ticks at a constant rate which can be easily scaled.
 //!
 //! A caveat is that "constant" TSC doesn't account for all possible power states (levels of power
 //! down or sleep that a CPU can enter to save power under light load, etc) and so a constant TSC
@@ -73,56 +91,55 @@
 //! recalibration. Nonstop/invariant TSC does not have this limitation and is stable over long
 //! periods of time.
 //!
-//! Roughly speaking, the following list contains the beginning model/generation of processors
-//! where you should be able to expect having invariant TSC support:
+//! Roughly speaking, the following list contains the beginning model/generation of processors where
+//! you should be able to expect having invariant TSC support:
 //! - Intel Nehalem and newer for server-grade
 //! - Intel Skylake and newer for desktop-grade
 //! - VIA Centaur Nano and newer (circumstantial evidence here)
 //! - AMD Phenom and newer
 //!
-//! Ultimately, `quanta` will query CPUID information to determine if the processor has the
-//! required features to use the TSC.
+//! Ultimately, `quanta` will query CPUID information to determine if the processor has the required
+//! features to use the TSC.
 //!
 //! # Calibration
+//!
 //! As the TSC doesn't necessarily tick at reference scale -- i.e. one tick isn't always one
 //! nanosecond -- we have to apply a scaling factor when converting from source to reference time
-//! scale.  We acquire this scaling factor by querying the processor or calibrating our source
-//! clock to the reference clock.
-//!
-//! In some cases, on newer processors, the frequency of the TSC can be queried directly, providing
-//! a fixed scaling factor with no further calibration necessary.  In other cases, `quanta` will
-//! have to run its own calibration before the clock is ready to be used: repeatedly taking
-//! measurements from both the reference and source clocks until a stable scaling factor has been
-//! established.
+//! scale to provide this.  We acquire this scaling factor by repeatedly taking measurements from
+//! both the reference and source clocks, until we have a statistically-relevant measure of the
+//! average scaling factor.  We do some additional work to convert this scaling factor into a
+//! power-of-two number that allows us to optimize the code, and thus reduce the generated
+//! instructions required to scale a TSC value.
 //!
 //! This calibration is stored globally and reused.  However, the first `Clock` that is created in
-//! an application will block for a small period of time as it runs this calibration loop.  The
-//! time spent in the calibration loop is limited to 200ms overall.  In practice, `quanta` will
-//! reach a stable calibration quickly (usually 10-20ms, if not less) and so this deadline is
-//! unlikely to be reached.
+//! an application will block for a small period of time as it runs this calibration loop.  The time
+//! spent in the calibration loop is limited to 200ms overall.  In practice, `quanta` will reach a
+//! stable calibration quickly (usually 10-20ms, if not less) and so this deadline is unlikely to be
+//! reached.
 //!
 //! # Caveats
+//!
 //! Utilizing the TSC can be a tricky affair, and so here is a list of caveats that may or may not
 //! apply, and is in no way exhaustive:
 //! - CPU hotplug behavior is undefined
 //! - raw values may time warp
 //! - measurements from the TSC may drift past or behind the comparable reference clock
 //!
-//! # WASM support
+//! Another important caveat is that `quanta` does not track time across system suspends.  Simply
+//! put, if a time measurement (such as using [`Instant::now`][crate::Instant::now]) is taken, and
+//! then the system is suspended, and then another measurement is taken, the difference between
+//! those the two would not include the time the system was in suspend.
 //!
-//! This library can be built for WASM targets, but in this case the resolution
-//! and accuracy of measurements can be limited by the WASM environment. In
-//! particular, when running on the `wasm32-unknown-unknown` target in browsers,
-//! `quanta` will use [windows.performance.now] as a clock. This mean the
-//! accuracy is limited to milliseconds instead of the usual nanoseconds on
-//! other targets. When running within a WASI environment (target
-//! `wasm32-wasi`), the accuracy of the clock depends on the VM implementation.
-//!
+//! [tsc]: https://en.wikipedia.org/wiki/Time_Stamp_Counter
 //! [QueryPerformanceCounter]: https://msdn.microsoft.com/en-us/library/ms644904(v=VS.85).aspx
-//! [mach_continuous_time]: https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time
+//! [mach_absolute_time]: https://developer.apple.com/documentation/kernel/1462446-mach_absolute_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
 //! [windows.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
+#![deny(missing_docs)]
+#![deny(clippy::all)]
+#![allow(clippy::must_use_candidate)]
+
 use crossbeam_utils::atomic::AtomicCell;
 use std::time::Duration;
 use std::{cell::RefCell, sync::Arc};
@@ -131,10 +148,9 @@ use once_cell::sync::OnceCell;
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use raw_cpuid::CpuId;
 
-mod monotonic;
-use self::monotonic::Monotonic;
-mod counter;
-use self::counter::Counter;
+mod clocks;
+use self::clocks::{Counter, Monotonic};
+
 mod mock;
 pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
@@ -144,12 +160,16 @@ pub use self::upkeep::{Error, Handle, Upkeep};
 mod stats;
 use self::stats::Variance;
 
+// Global clock, used by `Instant::now`.
 static GLOBAL_CLOCK: OnceCell<Clock> = OnceCell::new();
 
+// Global recent measurement, used by `Clock::recent` and `Instant::recent`.
 static GLOBAL_RECENT: AtomicCell<u64> = AtomicCell::new(0);
 
+// Global calibration, shared by all clocks.
 static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
 
+// Per-thread clock override, used by `quanta::with_clock`, `Instant::now`, and sometimes `Instant::recent`.
 thread_local! {
     static CLOCK_OVERRIDE: RefCell<Option<Clock>> = RefCell::new(None);
 }
@@ -163,7 +183,6 @@ const MAXIMUM_CAL_ERROR_NS: u64 = 10;
 // Don't run the calibration loop for longer than 200ms of wall time.
 const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
 
-#[allow(dead_code)]
 #[derive(Debug)]
 enum ClockType {
     Monotonic(Monotonic),
@@ -195,13 +214,11 @@ impl Calibration {
         scaled + self.ref_time
     }
 
-    fn calibrate(&mut self, reference: &Monotonic, source: &Counter) {
-        // future improvement: read the TSC frequency directly with something like the
-        // code in this PR: https://github.com/hermitcore/uhyve/pull/24
-
+    fn calibrate(&mut self, reference: Monotonic, source: &Counter) {
         let mut variance = Variance::default();
         let deadline = reference.now() + MAXIMUM_CAL_TIME.as_nanos() as u64;
 
+        let ref_time_self = reference.now();
         self.ref_time = reference.now();
         self.src_time = source.now();
 
@@ -239,16 +256,29 @@ impl Calibration {
                 let samples = variance.samples();
 
                 if samples > MINIMUM_CAL_ROUNDS
-                    && mwe < MAXIMUM_CAL_ERROR_NS
+                    && mwe < MAXIMUM_CAL_ERROR_NS as f64
                     && mean_error / mean <= 1.0
                 {
                     break;
                 }
             }
         }
+
+        // We tracked how long a single call to `Monotonic::now` now took by calling it twice and
+        // getting the delta.  We add this to `self.ref_time` to better synchronize the conversions
+        // from the source timebase.
+        //
+        // While this isn't a technically rigorous measure of how long the call to `Monotonic::now`
+        // normally takes, or how long the one _we did_ actually took, it should typically be just
+        // as close to normal as we'd be without this offset, but in the other direction.
+        //
+        // We eventually _should_ try and better measure the self-time of `Monotonic::now` but it
+        // can be a little tricky without warm up loops, etc.
+        let ref_time_offset = self.ref_time - ref_time_self;
+        self.ref_time += ref_time_offset;
     }
 
-    fn adjust_cal_ratio(&mut self, reference: &Monotonic, source: &Counter) {
+    fn adjust_cal_ratio(&mut self, reference: Monotonic, source: &Counter) {
         // Overall algorithm: measure the delta between our ref/src_time values and "now" versions
         // of them, calculate the ratio between the deltas, and then find a numerator and
         // denominator to express that ratio such that the denominator is always a power of two.
@@ -266,13 +296,9 @@ impl Calibration {
         let ref_d = ref_end.wrapping_sub(self.ref_time);
         let src_d = src_end.wrapping_sub(self.src_time);
 
-        // TODO: we should almost never get a zero here because that would mean denom was greater
-        // than 2^63 which is already a red flag.. but i'm not 100% sure if we can prove it well
-        // enough to simply keep the panic around? gotta think on this
-        let src_d_po2 = src_d.next_power_of_two();
-        if src_d_po2 == 0 {
-            panic!("po2_denom was zero!");
-        }
+        let src_d_po2 = src_d
+            .checked_next_power_of_two()
+            .unwrap_or_else(|| 2_u64.pow(63));
 
         // TODO: lossy conversion back and forth just to get an approximate value, can we do better
         // with integer math? not sure
@@ -299,12 +325,12 @@ impl Clock {
     ///
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
-        let reference = Monotonic::new();
+        let reference = Monotonic::default();
         let inner = if has_tsc_support() {
-            let source = Counter::new();
+            let source = Counter::default();
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
                 let mut calibration = Calibration::new();
-                calibration.calibrate(&reference, &source);
+                calibration.calibrate(reference, &source);
                 calibration
             });
             ClockType::Counter(AtomicCell::new(0), reference, source, *calibration)
@@ -342,7 +368,9 @@ impl Clock {
                 // Update the last timestamp with `now`, if `now` is greater
                 // than the current value.
                 // TODO: replace with `AtomicCell::fetch_max` once `crossbeam-utils` implements it.
-                let last = last.fetch_update(|current| Some(current.max(now))).unwrap();
+                let last = last
+                    .fetch_update(|current| Some(current.max(now)))
+                    .expect("should never return an error");
                 // `fetch_max` always returns the previous value, so we need to
                 // see which is *actually* the max.
                 let actual = std::cmp::max(now, last);
@@ -458,25 +486,19 @@ impl Clock {
     /// read directly without the need to scale to reference time.
     ///
     /// The upkeep thread must be started in order to update the time.  You can read the
-    /// documentation for [`Builder`] for more information on starting the upkeep thread, as well
-    /// as the details of the "current time" mechanism.
+    /// documentation for [`Upkeep`][upkeep] for more information on starting the upkeep thread, as
+    /// well as the details of the "current time" mechanism.
     ///
     /// If the upkeep thread has not been started, the return value will be `0`.
     ///
     /// Returns an [`Instant`].
+    ///
+    /// [upkeep]: crate::Upkeep
     pub fn recent(&self) -> Instant {
         match &self.inner {
             ClockType::Mock(mock) => Instant(mock.value()),
             _ => Instant(GLOBAL_RECENT.load()),
         }
-    }
-
-    /// Updates the recent current time.
-    ///
-    /// Most callers should use the existing [`Builder`] machinery for spawning a background thread
-    /// to handle upkeep, rather than calling [`upkeep`] directly.
-    pub fn upkeep(value: Instant) {
-        GLOBAL_RECENT.store(value.0);
     }
 }
 
@@ -491,10 +513,10 @@ impl Clone for ClockType {
     fn clone(&self) -> Self {
         match self {
             ClockType::Mock(mock) => ClockType::Mock(mock.clone()),
-            ClockType::Monotonic(monotonic) => ClockType::Monotonic(monotonic.clone()),
+            ClockType::Monotonic(monotonic) => ClockType::Monotonic(*monotonic),
             ClockType::Counter(last, monotonic, counter, calibration) => ClockType::Counter(
                 AtomicCell::new(last.load()),
-                monotonic.clone(),
+                *monotonic,
                 counter.clone(),
                 *calibration,
             ),
@@ -509,7 +531,7 @@ pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
     CLOCK_OVERRIDE.with(|current| {
         let old = current.replace(Some(clock.clone()));
         let result = f();
-        let _ = current.replace(old);
+        current.replace(old);
         result
     })
 }
@@ -521,12 +543,12 @@ pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
 /// recent time is updated.  For example, programs using an asynchronous runtime may prefer to
 /// schedule a task that does the updating, avoiding an extra thread.
 pub fn set_recent(instant: Instant) {
-    GLOBAL_RECENT.store(instant.as_u64());
+    GLOBAL_RECENT.store(instant.0);
 }
 
 #[inline]
 pub(crate) fn get_now() -> Instant {
-    if let Some(instant) = CLOCK_OVERRIDE.with(|clock| clock.borrow().as_ref().map(|c| c.now())) {
+    if let Some(instant) = CLOCK_OVERRIDE.with(|clock| clock.borrow().as_ref().map(Clock::now)) {
         instant
     } else {
         GLOBAL_CLOCK.get_or_init(Clock::new).now()
@@ -542,10 +564,10 @@ pub(crate) fn get_recent() -> Instant {
     // Given that global recent time shouldn't ever be getting _actually_ updated in tests, this
     // should be a reasonable trade-off.
     let recent = GLOBAL_RECENT.load();
-    if recent != 0 {
-        Instant(recent)
-    } else {
+    if recent == 0 {
         get_now()
+    } else {
+        Instant(recent)
     }
 }
 
@@ -560,8 +582,8 @@ fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
 fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
     // Modified muldiv routine where the denominator has to be a power of two. `denom` is expected
     // to be the number of bits to shift, not the actual decimal value.
-    let mut v: u128 = value as u128;
-    v *= numer as u128;
+    let mut v = u128::from(value);
+    v *= u128::from(numer);
     v >>= denom;
     v as u64
 }
@@ -569,7 +591,7 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 fn has_tsc_support() -> bool {
-    read_cpuid_nonstop_tsc() && read_cpuid_rdtscp_support()
+    read_cpuid_invariant_tsc() && read_cpuid_rdtscp_support()
 }
 
 #[allow(dead_code)]
@@ -579,7 +601,7 @@ fn has_tsc_support() -> bool {
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn read_cpuid_nonstop_tsc() -> bool {
+fn read_cpuid_invariant_tsc() -> bool {
     let cpuid = CpuId::new();
     cpuid
         .get_advanced_power_mgmt_info()
@@ -596,8 +618,9 @@ fn read_cpuid_rdtscp_support() -> bool {
 
 #[cfg(test)]
 pub mod tests {
-    use super::{Clock, Monotonic};
+    use super::{Clock, Counter, Monotonic};
     use average::{Merge, Variance};
+    use std::time::{Duration, Instant};
 
     #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
     mod configure_wasm_tests {
@@ -613,9 +636,9 @@ pub mod tests {
     )]
     fn test_mock() {
         let (clock, mock) = Clock::mock();
-        assert_eq!(clock.now().as_u64(), 0);
+        assert_eq!(clock.now().0, 0);
         mock.increment(42);
-        assert_eq!(clock.now().as_u64(), 42);
+        assert_eq!(clock.now().0, 42);
     }
 
     #[test]
@@ -625,7 +648,7 @@ pub mod tests {
     )]
     fn test_now() {
         let clock = Clock::new();
-        assert!(clock.now().as_u64() > 0);
+        assert!(clock.now().0 > 0);
     }
 
     #[test]
@@ -667,7 +690,7 @@ pub mod tests {
         let clock = Clock::new();
         let raw = clock.raw();
         let scaled = clock.scaled(raw);
-        assert!(scaled.as_u64() > 0);
+        assert!(scaled.0 > 0);
     }
 
     #[test]
@@ -678,7 +701,7 @@ pub mod tests {
     )]
     fn test_reference_source_calibration() {
         let clock = Clock::new();
-        let reference = Monotonic::new();
+        let reference = Monotonic::default();
 
         let loops = 10000;
 
@@ -688,49 +711,31 @@ pub mod tests {
 
         for _ in 0..loops {
             for i in 0..1024 {
-                src_samples[i] = clock.now().as_u64();
+                src_samples[i] = clock.now().0;
                 ref_samples[i] = reference.now();
             }
 
-            let mut last = None;
-            let is_src_monotonic = src_samples.iter().all(|n| match last {
-                None => {
-                    last = Some(n);
-                    true
-                }
-                Some(on) => {
-                    if n >= on {
-                        last = Some(n);
-                        true
-                    } else {
-                        false
-                    }
-                }
-            });
-            assert!(is_src_monotonic);
+            let is_src_monotonic = src_samples
+                .iter()
+                .map(Some)
+                .reduce(|last, current| last.and_then(|lv| current.filter(|cv| *cv >= lv)))
+                .flatten()
+                .copied();
+            assert_eq!(is_src_monotonic, Some(src_samples[1023]));
 
-            let mut last = None;
-            let is_ref_monotonic = ref_samples.iter().all(|n| match last {
-                None => {
-                    last = Some(n);
-                    true
-                }
-                Some(on) => {
-                    if n >= on {
-                        last = Some(n);
-                        true
-                    } else {
-                        false
-                    }
-                }
-            });
-            assert!(is_ref_monotonic);
+            let is_ref_monotonic = ref_samples
+                .iter()
+                .map(Some)
+                .reduce(|last, current| last.and_then(|lv| current.filter(|cv| *cv >= lv)))
+                .flatten()
+                .copied();
+            assert_eq!(is_ref_monotonic, Some(ref_samples[1023]));
 
             let local = src_samples
                 .iter()
                 .zip(ref_samples.iter())
-                .map(|(s, r)| (*s as f64, *r as f64))
-                .map(|(s, r)| (r - s).abs())
+                .map(|(s, r)| *s as f64 - *r as f64)
+                .map(|f| f.abs())
                 .collect::<Variance>();
 
             overall.merge(&local);
@@ -754,38 +759,45 @@ pub mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
-    fn test_reference_self_calibration() {
-        let reference = Monotonic::new();
+    fn measure_source_reference_self_timing() {
+        let source = Counter::default();
+        let reference = Monotonic::default();
 
         let loops = 10000;
-        let samples = 1024;
 
-        let mut overall = Variance::new();
-        let mut deltas = Vec::with_capacity(samples);
-        deltas.reserve(samples);
+        let mut src_deltas = Vec::new();
+        let mut src_samples = [0u64; 100];
 
         for _ in 0..loops {
-            deltas.clear();
-            for _ in 0..samples {
-                let rstart = reference.now();
-                let rend = reference.now();
-
-                deltas.push(rend - rstart);
+            let start = Instant::now();
+            for i in 0..100 {
+                src_samples[i] = source.now();
             }
 
-            let local = deltas.iter().map(|i| *i as f64).collect::<Variance>();
-            overall.merge(&local);
+            src_deltas.push(start.elapsed().as_secs_f64());
         }
 
-        println!(
-            "reference/reference inter-call delta: mean={} error={} mean-var={}",
-            overall.mean(),
-            overall.error(),
-            overall.variance_of_mean()
-        );
+        let mut ref_deltas = Vec::new();
+        let mut ref_samples = [0u64; 100];
 
-        // We should be able to call the reference clock, back-to-back, within 2000 nanoseconds.  If
-        // it's slower than that, something is probably amiss on the system the test is running under.
-        assert!(overall.mean() < 2000.0);
+        for _ in 0..loops {
+            let start = Instant::now();
+            for i in 0..100 {
+                ref_samples[i] = reference.now();
+            }
+
+            ref_deltas.push(start.elapsed().as_secs_f64());
+        }
+
+        let src_variance = src_deltas.into_iter().collect::<Variance>();
+        let ref_variance = ref_deltas.into_iter().collect::<Variance>();
+
+        let src_variance_ns = Duration::from_secs_f64(src_variance.mean() / 100.0);
+        let ref_variance_ns = Duration::from_secs_f64(ref_variance.mean() / 100.0);
+
+        println!(
+            "source call average: {:?}, reference call average: {:?}",
+            src_variance_ns, ref_variance_ns
+        );
     }
 }

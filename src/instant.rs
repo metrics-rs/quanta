@@ -5,11 +5,8 @@ use std::time::Duration;
 
 /// A point-in-time wall-clock measurement.
 ///
-/// Unlike the stdlib `Instant`, this type has a meaningful difference: it is intended to be opaque,
-/// but the internal value _can_ be accessed.  There are no guarantees here and depending on this
-/// value directly is proceeding at your own risk. ⚠️
-///
-/// An `Instant` is 8 bytes.
+/// Mimics most of the functionality of [`std::time::Instant`] but provides an additional method for
+/// using the "recent time" feature of `quanta`.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
@@ -19,8 +16,10 @@ impl Instant {
     /// This method depends on a lazily initialized global clock, which can take up to 200ms to
     /// initialize and calibrate itself.
     ///
-    /// This method is the spiritual equivalent of [`std::time::Instant::now`].  It is guaranteed to
+    /// This method is the spiritual equivalent of [`Instant::now`][instant_now].  It is guaranteed to
     /// return a monotonically increasing value.
+    ///
+    /// [instant_now]: std::time::Instant::now
     pub fn now() -> Instant {
         crate::get_now()
     }
@@ -31,12 +30,15 @@ impl Instant {
     /// time.  Instead of querying the underlying source clock directly, a shared, global value is
     /// read directly without the need to scale to reference time.
     ///
-    /// The value is updated by running an "upkeep" thread or by calling [`quanta::set_recent`].  An
-    /// upkeep thread can be configured and spawned via [`Builder`].
+    /// The value is updated by running an "upkeep" thread or by calling [`set_recent`][set_recent].  An
+    /// upkeep thread can be configured and spawned via [`Upkeep`][upkeep].
     ///
     /// If the upkeep thread has not been started, or no value has been set manually, a lazily
     /// initialized global clock will be used to get the current time.  This clock can take up to
     /// 200ms to initialize and calibrate itself.
+    ///
+    /// [set_recent]: crate::set_recent
+    /// [upkeep]: crate::Upkeep
     pub fn recent() -> Instant {
         crate::get_recent()
     }
@@ -61,9 +63,7 @@ impl Instant {
     /// println!("{:?}", new_now.duration_since(now));
     /// ```
     pub fn duration_since(&self, earlier: Instant) -> Duration {
-        self.0
-            .checked_sub(earlier.0)
-            .map(Duration::from_nanos)
+        self.checked_duration_since(earlier)
             .expect("supplied instant is later than self")
     }
 
@@ -122,11 +122,6 @@ impl Instant {
     /// otherwise.
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
         self.0.checked_sub(duration.as_nanos() as u64).map(Instant)
-    }
-
-    /// Gets the inner value of this `Instant`.
-    pub fn as_u64(&self) -> u64 {
-        self.0
     }
 }
 
@@ -230,8 +225,8 @@ mod tests {
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
 
-        assert!(t0.as_u64() > 0);
-        assert!(t1.as_u64() > 0);
+        assert!(t0.0 > 0);
+        assert!(t1.0 > 0);
 
         let result = t1 - t0;
         let threshold = Duration::from_millis(14);
@@ -251,8 +246,8 @@ mod tests {
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::recent();
 
-        assert!(t0.as_u64() > 0);
-        assert!(t1.as_u64() > 0);
+        assert!(t0.0 > 0);
+        assert!(t1.0 > 0);
 
         let result = t1 - t0;
         let threshold = Duration::from_millis(14);
@@ -277,19 +272,19 @@ mod tests {
             mock.increment(42);
             let t1 = Instant::now();
 
-            assert_eq!(t0.as_u64(), 0);
-            assert_eq!(t1.as_u64(), 42);
+            assert_eq!(t0.0, 0);
+            assert_eq!(t1.0, 42);
 
             let t2 = Instant::recent();
             mock.increment(420);
             let t3 = Instant::recent();
 
-            assert_eq!(t2.as_u64(), 42);
-            assert_eq!(t3.as_u64(), 462);
+            assert_eq!(t2.0, 42);
+            assert_eq!(t3.0, 462);
 
             crate::set_recent(Instant(1440));
             let t4 = Instant::recent();
-            assert_eq!(t4.as_u64(), 1440);
+            assert_eq!(t4.0, 1440);
         })
     }
 }
