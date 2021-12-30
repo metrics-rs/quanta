@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use crossbeam_utils::atomic::AtomicCell;
 use std::{sync::Arc, time::Duration};
 
@@ -7,6 +6,7 @@ use std::{sync::Arc, time::Duration};
 /// This allows users of [`Mock`] to increment/decrement the time both with raw
 /// integer values and the more convenient [`Duration`] type.
 pub trait IntoNanoseconds {
+    /// Consumes this value, converting it to a nanosecond representation.
     fn into_nanos(self) -> u64;
 }
 
@@ -48,7 +48,7 @@ impl Mock {
         let amount = amount.into_nanos();
         self.offset
             .fetch_update(|current| Some(current + amount))
-            .unwrap();
+            .expect("should never return an error");
     }
 
     /// Decrements the time by the given amount.
@@ -56,7 +56,7 @@ impl Mock {
         let amount = amount.into_nanos();
         self.offset
             .fetch_update(|current| Some(current - amount))
-            .unwrap();
+            .expect("should never return an error");
     }
 
     /// Gets the current value of this `Mock`.

@@ -8,6 +8,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+- Documentation has been updated to reflect that `quanta` does not track time across system
+  suspends.
+- Updated the calibration logic to add an offset to the reference base time that is used to scale
+  source measurements in TSC mode.  Simply put, the "synchronization" -- how close `Clock::now` is
+  to the underlying monotonic clock, if you called both at the very same moment -- has been improved
+  by a substantial amount on average.
+- Fixed a panic in the calibration loop if a certain edge case with TSC measurements is encountered.
+
+### Removed
+- `Instant::as_u64` has been removed.  As it provided direct access to an value that could
+  fundamentally change from version-to-version, it felt like time to remove that footgun and push
+  users more towards the API that mimics `std::time`.
+- `Clock::upkeep` has been removed.  It doesn't need to exist on `Clock` directly, as we have had
+  the `quanta::set_recent` free function for a while now, and was just duplicating that.
+
 ## [0.9.3] - 2021-09-16
 
 ### Added

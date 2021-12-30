@@ -42,7 +42,7 @@ raw-cpuid = "10.2"
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 raw-cpuid = "10.2"
 
-[target.'cfg(all(not(target_os = "macos"), not(target_os = "ios"), not(target_os = "windows"), not(target_arch = "wasm32")))'.dependencies]
+[target.'cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows", target_arch = "wasm32")))'.dependencies]
 libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
