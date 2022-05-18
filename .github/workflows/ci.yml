@@ -99,7 +99,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: doc
-        args: --all-features --workspace --exclude=metrics-observer --no-deps
+        args: --all-features --workspace --no-deps
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -126,5 +126,5 @@ jobs:
         alert-threshold: '10%'
         comment-on-alert: true
         fail-on-alert: true
-        alert-comment-cc-users: '@metrics-rs/maintainers'
+        alert-comment-cc-users: '@tobz'
         auto-push: ${{ github.ref == 'refs/heads/main' }}
