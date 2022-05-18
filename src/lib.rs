@@ -377,12 +377,8 @@ impl Clock {
     /// or to be monotonic.  Value can be scaled to reference time by calling either [`scaled`]
     /// or [`delta`].
     ///
-    /// If you need maximum accuracy in your measurements, consider using [`start`] and [`end`].
-    ///
     /// [`scaled`]: Clock::scaled
     /// [`delta`]: Clock::delta
-    /// [`start`]: Clock::start
-    /// [`end`]: Clock::end
     pub fn raw(&self) -> u64 {
         match &self.inner {
             ClockType::Monotonic(monotonic) => monotonic.now(),
