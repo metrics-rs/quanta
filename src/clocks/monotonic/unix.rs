@@ -14,14 +14,14 @@ impl Monotonic {
 
         // LINT JUSTIFICATION:
         //
-        // We really don't ever except to actually _get_ negative values from `clock_gettime`, but
+        // We really don't ever expect to actually _get_ negative values from `clock_gettime`, but
         // given the types, it's technically possible.  This is due to the fact that `tv_sec` is
         // supposed to be `time_t`, which Unix/POSIX-compliant systems implement as a signed number.
         // Accordingly, `tv_nsec` follows suit using a signed number.
         //
         // Given the adjustments made by NTP to clocks like CLOCK_MONOTONIC, and that
         // CLOCK_MONOTONIC can be anchored to an arbitrary point, and a whole skew of other
-        // scenarios where it could be modified... it's technicaly possibler to get back valid
+        // scenarios where it could be modified... it's technicaly possible to get back valid
         // negative values.  If we did math between `timespec` objects, the delta should be valid,
         // even with negative numbers.
         //

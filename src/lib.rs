@@ -181,7 +181,7 @@ const MINIMUM_CAL_ROUNDS: u64 = 500;
 const MAXIMUM_CAL_ERROR_NS: u64 = 10;
 
 // Don't run the calibration loop for longer than 200ms of wall time.
-const MAXIMUM_CAL_TIME: Duration = Duration::from_millis(200);
+const MAXIMUM_CAL_TIME_NS: u64 = 200 * 1000 * 1000;
 
 #[derive(Debug)]
 enum ClockType {
@@ -199,13 +199,18 @@ pub(crate) struct Calibration {
 }
 
 impl Calibration {
-    pub fn new() -> Calibration {
+    fn new() -> Calibration {
         Calibration {
             ref_time: 0,
             src_time: 0,
             scale_factor: 1,
             scale_shift: 1,
         }
+    }
+
+    fn reset_timebases(&mut self, reference: Monotonic, source: &Counter) {
+        self.ref_time = reference.now();
+        self.src_time = source.now();
     }
 
     fn scale_src_to_ref(&self, src_raw: u64) -> u64 {
@@ -216,12 +221,11 @@ impl Calibration {
 
     fn calibrate(&mut self, reference: Monotonic, source: &Counter) {
         let mut variance = Variance::default();
-        let deadline = reference.now() + MAXIMUM_CAL_TIME.as_nanos() as u64;
+        let deadline = reference.now() + MAXIMUM_CAL_TIME_NS as u64;
 
-        let ref_time_self = reference.now();
-        self.ref_time = reference.now();
-        self.src_time = source.now();
+        self.reset_timebases(reference, source);
 
+        // Each busy loop should spin for 1 microsecond. (1000 nanoseconds)
         let loop_delta = 1000;
         loop {
             // Busy loop to burn some time.
@@ -263,19 +267,6 @@ impl Calibration {
                 }
             }
         }
-
-        // We tracked how long a single call to `Monotonic::now` now took by calling it twice and
-        // getting the delta.  We add this to `self.ref_time` to better synchronize the conversions
-        // from the source timebase.
-        //
-        // While this isn't a technically rigorous measure of how long the call to `Monotonic::now`
-        // normally takes, or how long the one _we did_ actually took, it should typically be just
-        // as close to normal as we'd be without this offset, but in the other direction.
-        //
-        // We eventually _should_ try and better measure the self-time of `Monotonic::now` but it
-        // can be a little tricky without warm up loops, etc.
-        let ref_time_offset = self.ref_time - ref_time_self;
-        self.ref_time += ref_time_offset;
     }
 
     fn adjust_cal_ratio(&mut self, reference: Monotonic, source: &Counter) {
@@ -291,7 +282,7 @@ impl Calibration {
         // Then, conversion from a raw value simply becomes a multiply and a bit shift instead of a
         // multiply and full-blown divide.
         let ref_end = reference.now();
-        let src_end = source.end();
+        let src_end = source.now();
 
         let ref_d = ref_end.wrapping_sub(self.ref_time);
         let src_d = src_end.wrapping_sub(self.src_time);
@@ -400,44 +391,6 @@ impl Clock {
         }
     }
 
-    /// Gets the underlying time from the source clock, specific to starting an operation.
-    ///
-    /// Value is not guaranteed to be in nanoseconds.
-    ///
-    /// Provides the same functionality as [`raw`], but tries to ensure that no extra CPU
-    /// instructions end up executing after the measurement is taken.  Since normal processors are
-    /// typically out-of-order, other operations that logically come before a call to this method
-    /// could be reordered to come after the measurement, thereby skewing the overall time
-    /// measured.
-    ///
-    /// [`raw`]: Clock::raw
-    pub fn start(&self) -> u64 {
-        match &self.inner {
-            ClockType::Monotonic(monotonic) => monotonic.now(),
-            ClockType::Counter(_, _, counter, _) => counter.start(),
-            ClockType::Mock(mock) => mock.value(),
-        }
-    }
-
-    /// Gets the underlying time from the source clock, specific to ending an operation.
-    ///
-    /// Value is not guaranteed to be in nanoseconds.
-    ///
-    /// Provides the same functionality as [`raw`], but tries to ensure that no extra CPU
-    /// instructions end up executing before the measurement is taken.  Since normal processors are
-    /// typically out-of-order, other operations that logically come after a call to this method
-    /// could be reordered to come before the measurement, thereby skewing the overall time
-    /// measured.
-    ///
-    /// [`raw`]: Clock::raw
-    pub fn end(&self) -> u64 {
-        match &self.inner {
-            ClockType::Monotonic(monotonic) => monotonic.now(),
-            ClockType::Counter(_, _, counter, _) => counter.end(),
-            ClockType::Mock(mock) => mock.value(),
-        }
-    }
-
     /// Scales a raw measurement to reference time.
     ///
     /// You must scale raw measurements to ensure your result is in nanoseconds.  The raw
@@ -447,7 +400,7 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn scaled(&self, value: u64) -> Instant {
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => scale_src_to_ref(value, calibration),
+            ClockType::Counter(_, _, _, calibration) => calibration.scale_src_to_ref(value),
             _ => value,
         };
 
@@ -498,6 +451,17 @@ impl Clock {
         match &self.inner {
             ClockType::Mock(mock) => Instant(mock.value()),
             _ => Instant(GLOBAL_RECENT.load()),
+        }
+    }
+
+    #[cfg(test)]
+    fn reset_timebase(&mut self) -> bool {
+        match &mut self.inner {
+            ClockType::Counter(_, reference, source, calibration) => {
+                calibration.reset_timebases(*reference, source);
+                true
+            }
+            _ => false,
         }
     }
 }
@@ -572,13 +536,6 @@ pub(crate) fn get_recent() -> Instant {
 }
 
 #[inline]
-fn scale_src_to_ref(src_raw: u64, cal: &Calibration) -> u64 {
-    let delta = src_raw.saturating_sub(cal.src_time);
-    let scaled = mul_div_po2_u64(delta, cal.scale_factor, cal.scale_shift);
-    scaled + cal.ref_time
-}
-
-#[inline]
 fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
     // Modified muldiv routine where the denominator has to be a power of two. `denom` is expected
     // to be the number of bits to shift, not the actual decimal value.
@@ -624,8 +581,7 @@ pub mod tests {
 
     #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
     mod configure_wasm_tests {
-        // until https://github.com/rustwasm/wasm-bindgen/issues/2571 is resolved
-        // these tests will only run in browsers
+        // Until https://github.com/rustwasm/wasm-bindgen/issues/2571 is resolved, these tests will only run in browsers.
         wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
     }
 
@@ -666,26 +622,6 @@ pub mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
-    fn test_start() {
-        let clock = Clock::new();
-        assert!(clock.start() > 0);
-    }
-
-    #[test]
-    #[cfg_attr(
-        all(target_arch = "wasm32", target_os = "unknown"),
-        wasm_bindgen_test::wasm_bindgen_test
-    )]
-    fn test_end() {
-        let clock = Clock::new();
-        assert!(clock.end() > 0);
-    }
-
-    #[test]
-    #[cfg_attr(
-        all(target_arch = "wasm32", target_os = "unknown"),
-        wasm_bindgen_test::wasm_bindgen_test
-    )]
     fn test_scaled() {
         let clock = Clock::new();
         let raw = clock.raw();
@@ -699,8 +635,9 @@ pub mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
+
     fn test_reference_source_calibration() {
-        let clock = Clock::new();
+        let mut clock = Clock::new();
         let reference = Monotonic::default();
 
         let loops = 10000;
@@ -710,6 +647,32 @@ pub mod tests {
         let mut ref_samples = [0u64; 1024];
 
         for _ in 0..loops {
+            // We have to reset the "timebase" of the clock/calibration when testing in this way.
+            //
+            // Since `quanta` is designed around mimicing `Instant`, we care about measuring the _passage_ of time, but
+            // not matching our calculation of wall-clock time to the system's calculation of wall-clock time, in terms
+            // of their absolute values.
+            //
+            // As the system adjusts its clocks over time, whether due to NTP skew, or delays in updating the derived monotonic
+            // time, and so on, our original measurement base from the reference source -- which we use to anchor how we
+            // convert our scaled source measurement into the same reference timebase -- can skew further away from the
+            // current reference time in terms of the rate at which it ticks forward.
+            //
+            // Essentially, what we're saying here is that we want to test the scaling ratio that we generated in
+            // calibration, but not necessarily that the resulting value -- which is meant to be in the same timebase as
+            // the reference -- is locked to the reference itself. For example, if the reference is in nanoseconds, we
+            // want our source to be scaled to nanoseconds, too. We don't care if the system shoves the reference back
+            // and forth via NTP skew, etc... we just need to do enough source-to-reference calibration loops to figure
+            // out what the right amount is to scale the TSC -- since we require an invariant/nonstop TSC -- to get it
+            // to nanoseconds.
+            //
+            // At the risk of saying _too much_, while the delta between `Clock::now` and `Monotonic::now` may grow over
+            // time if the timebases are not reset, we can readily observe in this test that the delta between the
+            // first/last measurement loop for both source/reference are independently close i.e. the ratio by which we
+            // scale the source measurements gets it close, and stays close, to the reference measurements in terms of
+            // the _passage_ of time.
+            clock.reset_timebase();
+
             for i in 0..1024 {
                 src_samples[i] = clock.now().0;
                 ref_samples[i] = reference.now();

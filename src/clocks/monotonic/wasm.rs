@@ -12,7 +12,7 @@ impl Monotonic {
             .performance()
             .expect(WASM_MISSING_WINDOW_PERF)
             .now();
-        // window.performance.now returns the time in milliseconds
+        // `window.performance.now()` returns the time in milliseconds.
         return f64::trunc(now * 1000.0) as u64;
     }
 }
