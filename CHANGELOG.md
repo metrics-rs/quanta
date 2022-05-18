@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.10.0] - 2022-05-18
+
 ### Changed
 
 - Documentation has been updated to reflect that `quanta` does not track time across system

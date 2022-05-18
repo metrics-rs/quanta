@@ -1,6 +1,6 @@
 [package]
 name = "quanta"
-version = "0.9.3"
+version = "0.10.0"
 authors = ["Toby Lawrence <toby@nuclearfurnace.com>"]
 edition = "2018"
 
