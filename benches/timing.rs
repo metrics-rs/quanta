@@ -26,26 +26,6 @@ fn time_quanta_raw_scaled(b: &mut Bencher) {
     b.iter(|| clock.scaled(clock.raw()))
 }
 
-fn time_quanta_start(b: &mut Bencher) {
-    let clock = Clock::new();
-    b.iter(|| clock.start())
-}
-
-fn time_quanta_start_scaled(b: &mut Bencher) {
-    let clock = Clock::new();
-    b.iter(|| clock.scaled(clock.start()))
-}
-
-fn time_quanta_end(b: &mut Bencher) {
-    let clock = Clock::new();
-    b.iter(|| clock.end())
-}
-
-fn time_quanta_end_scaled(b: &mut Bencher) {
-    let clock = Clock::new();
-    b.iter(|| clock.scaled(clock.end()))
-}
-
 fn time_instant_delta(b: &mut Bencher) {
     b.iter(|| {
         let start = StdInstant::now();
@@ -72,15 +52,6 @@ fn time_quanta_now_delta(b: &mut Bencher) {
     })
 }
 
-fn time_quanta_start_end_delta(b: &mut Bencher) {
-    let clock = Clock::new();
-    b.iter(|| {
-        let start = clock.start();
-        let end = clock.end();
-        clock.delta(start, end)
-    })
-}
-
 fn time_quanta_recent(b: &mut Bencher) {
     let clock = Clock::new();
     b.iter(|| clock.recent())
@@ -104,11 +75,6 @@ fn benchmark(c: &mut Criterion) {
     q_group.bench_function("quanta_raw", time_quanta_raw);
     q_group.bench_function("quanta_raw_scaled", time_quanta_raw_scaled);
     q_group.bench_function("quanta_raw_delta", time_quanta_raw_delta);
-    q_group.bench_function("quanta_start", time_quanta_start);
-    q_group.bench_function("quanta_start_scaled", time_quanta_start_scaled);
-    q_group.bench_function("quanta_end", time_quanta_end);
-    q_group.bench_function("quanta_end_scaled", time_quanta_end_scaled);
-    q_group.bench_function("quanta_start/end_delta", time_quanta_start_end_delta);
     q_group.bench_function("quanta_recent", time_quanta_recent);
     q_group.bench_function("quanta_instant_recent", time_quanta_instant_recent);
     q_group.finish();
