@@ -545,9 +545,11 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 fn has_tsc_support() -> bool {
     let cpuid = CpuId::new();
-    let has_invariant_tsc = cpuid.get_advanced_power_mgmt_info()
+    let has_invariant_tsc = cpuid
+        .get_advanced_power_mgmt_info()
         .map_or(false, |apm| apm.has_invariant_tsc());
-    let has_rdtscp = cpuid.get_extended_processor_and_feature_identifiers()
+    let has_rdtscp = cpuid
+        .get_extended_processor_and_feature_identifiers()
         .map_or(false, |epf| epf.has_rdtscp());
 
     has_invariant_tsc && has_rdtscp
