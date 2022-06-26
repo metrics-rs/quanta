@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1656214464251,
+  "lastUpdate": 1656253535163,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -2748,6 +2748,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_raw_delta",
             "value": 57,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tobz@users.noreply.github.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "76a3629aeeb6783982090f50963fc98bc6fd336f",
+          "message": "Update lib.rs",
+          "timestamp": "2022-06-26T10:20:51-04:00",
+          "tree_id": "d158e9680beb1ec6e19367ad10986dafb33e3492",
+          "url": "https://github.com/metrics-rs/quanta/commit/76a3629aeeb6783982090f50963fc98bc6fd336f"
+        },
+        "date": 1656253534210,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 26,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 58,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 27,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 56,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 31,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 56,
             "range": "± 0",
             "unit": "ns/iter"
           },
