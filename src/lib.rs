@@ -145,12 +145,9 @@ use std::time::Duration;
 use std::{cell::RefCell, sync::Arc};
 
 use once_cell::sync::OnceCell;
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use raw_cpuid::CpuId;
 
 mod clocks;
 use self::clocks::{Counter, Monotonic};
-
 mod mock;
 pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
@@ -544,7 +541,7 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 fn has_tsc_support() -> bool {
-    let cpuid = CpuId::new();
+    let cpuid = raw_cpuid::CpuId::new();
     let has_invariant_tsc = cpuid
         .get_advanced_power_mgmt_info()
         .map_or(false, |apm| apm.has_invariant_tsc());
