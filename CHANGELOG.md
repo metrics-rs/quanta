@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- Fixed build issue on x86/x86_64 platforms that did not have SSE.
+
 ## [0.10.0] - 2022-05-18
 
 ### Changed
