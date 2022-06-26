@@ -544,29 +544,19 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 #[allow(dead_code)]
 #[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
 fn has_tsc_support() -> bool {
-    read_cpuid_invariant_tsc() && read_cpuid_rdtscp_support()
+    let cpuid = CpuId::new();
+    let has_invariant_tsc = cpuid.get_advanced_power_mgmt_info()
+        .map_or(false, |apm| apm.has_invariant_tsc());
+    let has_rdtscp = cpuid.get_extended_processor_and_feature_identifiers()
+        .map_or(false, |epf| epf.has_rdtscp());
+
+    has_invariant_tsc && has_rdtscp
 }
 
 #[allow(dead_code)]
 #[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
 fn has_tsc_support() -> bool {
     false
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn read_cpuid_invariant_tsc() -> bool {
-    let cpuid = CpuId::new();
-    cpuid
-        .get_advanced_power_mgmt_info()
-        .map_or(false, |efi| efi.has_invariant_tsc())
-}
-
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-fn read_cpuid_rdtscp_support() -> bool {
-    let cpuid = CpuId::new();
-    cpuid
-        .get_extended_processor_and_feature_identifiers()
-        .map_or(false, |efi| efi.has_rdtscp())
 }
 
 #[cfg(test)]
