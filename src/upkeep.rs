@@ -77,6 +77,15 @@ impl fmt::Display for Error {
     }
 }
 
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::UpkeepRunning => None,
+            Self::FailedToSpawnUpkeepThread(e) => Some(e),
+        }
+    }
+}
+
 impl Upkeep {
     /// Creates a new [`Upkeep`].
     ///
