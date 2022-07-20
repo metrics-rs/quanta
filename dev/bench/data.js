@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658355800310,
+  "lastUpdate": 1658361186900,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -3090,6 +3090,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_recent",
             "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "distinct": true,
+          "id": "3a7d361b3cfa7553cc668cc2ecfb444dad29b79f",
+          "message": "(cargo-release) version 0.10.1",
+          "timestamp": "2022-07-20T19:48:29-04:00",
+          "tree_id": "fd77b3285400e4658168b9ddfe3d01864ddfacc3",
+          "url": "https://github.com/metrics-rs/quanta/commit/3a7d361b3cfa7553cc668cc2ecfb444dad29b79f"
+        },
+        "date": 1658361185200,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 28,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 61,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 27,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 51,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 29,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 25,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 26,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 50,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 1,
             "range": "± 0",
             "unit": "ns/iter"
           },
