@@ -8,10 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Implement `std::error::Error` for `quanta::Error`. (#68)
+
 ### Changed
 
 - Fixed build issue on x86/x86_64 platforms that did not have SSE.
-- Fixed clock off by a factor of 1000 in wasm/web browser
+- Fix scaling factor for `window.performance.now()` in WASM (#72)
 
 ## [0.10.0] - 2022-05-18
 
