@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.10.1] - 2022-07-20
+
 ### Added
 
 - Implement `std::error::Error` for `quanta::Error`. (#68)
