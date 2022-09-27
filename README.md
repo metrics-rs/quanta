@@ -10,10 +10,13 @@
 [docs-badge]: https://docs.rs/quanta/badge.svg
 [libraries-io-badge]: https://img.shields.io/librariesio/github/metrics-rs/quanta.svg
 [libraries-io]: https://libraries.io/cargo/quanta
+[![kandi X-Ray](https://kandi.openweaver.com/badges/xray.svg)](https://kandi.openweaver.com/rust/metrics-rs/quanta)
+
 [conduct]: https://github.com/metrics-rs/quanta/blob/main/CODE_OF_CONDUCT.md
 [gh-actions]: https://github.com/metrics-rs/quanta/actions
 [crate]: https://crates.io/crates/quanta
 [docs]: https://docs.rs/quanta
+
 
 __quanta__ is a high-speed timing library, useful for getting the current time _very quickly_, as
 well as manipulating it.
