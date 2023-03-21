@@ -7,6 +7,25 @@ use std::time::Duration;
 ///
 /// Mimics most of the functionality of [`std::time::Instant`] but provides an additional method for
 /// using the "recent time" feature of `quanta`.
+///
+/// ## Monotonicity
+///
+/// On all platforms `Instant` will try to use an OS API that guarantees monotonic behavior
+/// if available, which is the case for all supported platforms.
+/// In practice such guarantees are – under rare circumstances – broken by hardware, virtualization
+/// or operating system bugs. To work around these bugs and platforms not offering monotonic clocks
+/// [`duration_since`], [`elapsed`] and [`sub`] saturate to zero. In older `quanta` versions this
+/// lead to a panic instead. [`checked_duration_since`] can be used to detect and handle situations
+/// where monotonicity is violated, or `Instant`s are subtracted in the wrong order.
+///
+/// This workaround obscures programming errors where earlier and later instants are accidentally
+/// swapped. For this reason future `quanta` versions may reintroduce panics.
+///
+/// [`duration_since`]: Instant::duration_since
+/// [`elapsed`]: Instant::elapsed
+/// [`sub`]: Instant::sub
+/// [`checked_duration_since`]: Instant::checked_duration_since
+///
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
@@ -47,7 +66,11 @@ impl Instant {
     ///
     /// # Panics
     ///
-    /// This function will panic if `earlier` is later than `self`.
+    /// Previous `quanta` versions panicked when `earlier` was later than `self`. Currently this
+    /// method saturates. Future versions may reintroduce the panic in some circumstances.
+    /// See [Monotonicity].
+    ///
+    /// [Monotonicity]: Instant#monotonicity
     ///
     /// # Examples
     ///
@@ -63,12 +86,16 @@ impl Instant {
     /// println!("{:?}", new_now.duration_since(now));
     /// ```
     pub fn duration_since(&self, earlier: Instant) -> Duration {
-        self.checked_duration_since(earlier)
-            .expect("supplied instant is later than self")
+        self.checked_duration_since(earlier).unwrap_or_default()
     }
 
     /// Returns the amount of time elapsed from another instant to this one, or `None` if that
     /// instant is earlier than this one.
+    ///
+    /// Due to [monotonicity bugs], even under correct logical ordering of the passed `Instant`s,
+    /// this method can return `None`.
+    ///
+    /// [monotonicity bugs]: Instant#monotonicity
     ///
     /// # Examples
     ///
@@ -106,8 +133,7 @@ impl Instant {
     /// println!("{:?}", now.saturating_duration_since(new_now)); // 0ns
     /// ```
     pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
-        self.checked_duration_since(earlier)
-            .unwrap_or_else(|| Duration::new(0, 0))
+        self.checked_duration_since(earlier).unwrap_or_default()
     }
 
     /// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
@@ -164,6 +190,16 @@ impl SubAssign<Duration> for Instant {
 impl Sub<Instant> for Instant {
     type Output = Duration;
 
+    /// Returns the amount of time elapsed from another instant to this one,
+    /// or zero duration if that instant is later than this one.
+    ///
+    /// # Panics
+    ///
+    /// Previous `quanta` versions panicked when `other` was later than `self`. Currently this
+    /// method saturates. Future versions may reintroduce the panic in some circumstances.
+    /// See [Monotonicity].
+    ///
+    /// [Monotonicity]: Instant#monotonicity
     fn sub(self, other: Instant) -> Duration {
         self.duration_since(other)
     }
