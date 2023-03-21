@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1658361186900,
+  "lastUpdate": 1679358148427,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -3174,6 +3174,90 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_recent",
             "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e499709d046eb8650db7fb9fd3f6ca4073498f12",
+          "message": "Update prost-types requirement from 0.8 to 0.11 (#74)\n\nUpdates the requirements on [prost-types](https://github.com/tokio-rs/prost) to permit the latest version.\r\n- [Release notes](https://github.com/tokio-rs/prost/releases)\r\n- [Commits](https://github.com/tokio-rs/prost/compare/v0.8.0...v0.11.0)\r\n\r\n---\r\nupdated-dependencies:\r\n- dependency-name: prost-types\r\n  dependency-type: direct:production\r\n...\r\n\r\nSigned-off-by: dependabot[bot] <support@github.com>\r\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2023-03-20T20:17:25-04:00",
+          "tree_id": "09167e1c7fc9899d68d2a86844a20fdf78550981",
+          "url": "https://github.com/metrics-rs/quanta/commit/e499709d046eb8650db7fb9fd3f6ca4073498f12"
+        },
+        "date": 1679358147361,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/instant_now",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 64,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 63,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 30,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 27,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 57,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 2,
             "range": "± 0",
             "unit": "ns/iter"
           },
