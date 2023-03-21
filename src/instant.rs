@@ -136,6 +136,33 @@ impl Instant {
         self.checked_duration_since(earlier).unwrap_or_default()
     }
 
+    /// Returns the amount of time elapsed since this instant was created.
+    ///
+    /// # Panics
+    ///
+    /// Previous `quanta` versions panicked when the current time was earlier than self.
+    /// Currently this method returns a Duration of zero in that case.
+    /// Future versions may reintroduce the panic. See [Monotonicity].
+    ///
+    /// [Monotonicity]: Instant#monotonicity
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quanta::Clock;
+    /// use std::time::Duration;
+    /// use std::thread::sleep;
+    ///
+    /// let mut clock = Clock::new();
+    /// let now = clock.now();
+    /// sleep(Duration::new(1, 0));
+    /// let elapsed = now.elapsed();
+    /// println!("{:?}", elapsed); // ≥ 1s
+    /// ```
+    pub fn elapsed(&self) -> Duration {
+        Instant::now() - *self
+    }
+
     /// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
