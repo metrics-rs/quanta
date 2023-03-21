@@ -2,7 +2,8 @@
 name = "quanta"
 version = "0.10.1"
 authors = ["Toby Lawrence <toby@nuclearfurnace.com>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.60"
 
 license = "MIT"
 
@@ -33,7 +34,7 @@ prost = ["prost-types"]
 
 [dependencies]
 once_cell = "1.4"
-prost-types = { version = "0.11", optional = true }
+prost-types = { version = "0.11", default-features = false, optional = true }
 crossbeam-utils = "0.8.5"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
