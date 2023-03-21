@@ -47,10 +47,10 @@ raw-cpuid = "10.2"
 libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-mach = "0.3"
+mach2 = "0.4"
 
 [target.'cfg(target_os = "ios")'.dependencies]
-mach = "0.3"
+mach2 = "0.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["profileapi"] }
