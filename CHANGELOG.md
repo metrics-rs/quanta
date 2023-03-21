@@ -8,16 +8,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- `Instant::elapsed()` has been added. ([#82])
+
+### Changed
+
+- `Instant::duration_since` and `Instant::sub` now saturates to zero. ([#82])
+- Performance of `Instant::now` under high contention has been improved. ([#82])
+
+[#82]: https://github.com/metrics-rs/quanta/pull/82
+
 ## [0.10.1] - 2022-07-20
 
 ### Added
 
-- Implement `std::error::Error` for `quanta::Error`. (#68)
+- Implement `std::error::Error` for `quanta::Error`. ([#68])
 
 ### Changed
 
 - Fixed build issue on x86/x86_64 platforms that did not have SSE.
-- Fix scaling factor for `window.performance.now()` in WASM (#72)
+- Fix scaling factor for `window.performance.now()` in WASM. ([#72])
+
+[#72]: https://github.com/metrics-rs/quanta/pull/72
+[#68]: https://github.com/metrics-rs/quanta/pull/68
 
 ## [0.10.0] - 2022-05-18
 
