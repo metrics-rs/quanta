@@ -1,4 +1,4 @@
-use mach::mach_time::{mach_absolute_time, mach_timebase_info};
+use mach2::mach_time::{mach_absolute_time, mach_timebase_info};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Monotonic {
