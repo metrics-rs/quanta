@@ -3,7 +3,7 @@ use quanta::{Clock, Instant as QuantaInstant};
 use std::time::Instant as StdInstant;
 
 fn time_instant_now(b: &mut Bencher) {
-    b.iter(|| StdInstant::now())
+    b.iter(StdInstant::now)
 }
 
 fn time_quanta_now(b: &mut Bencher) {
@@ -13,7 +13,7 @@ fn time_quanta_now(b: &mut Bencher) {
 
 fn time_quanta_instant_now(b: &mut Bencher) {
     let _ = QuantaInstant::now();
-    b.iter(|| QuantaInstant::now());
+    b.iter(QuantaInstant::now);
 }
 
 fn time_quanta_raw(b: &mut Bencher) {

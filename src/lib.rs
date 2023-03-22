@@ -183,7 +183,7 @@ const MAXIMUM_CAL_TIME_NS: u64 = 200 * 1000 * 1000;
 #[derive(Debug)]
 enum ClockType {
     Monotonic(Monotonic),
-    Counter(AtomicCell<u64>, Monotonic, Counter, Calibration),
+    Counter(Monotonic, Counter, Calibration),
     Mock(Arc<Mock>),
 }
 
@@ -218,7 +218,7 @@ impl Calibration {
 
     fn calibrate(&mut self, reference: Monotonic, source: &Counter) {
         let mut variance = Variance::default();
-        let deadline = reference.now() + MAXIMUM_CAL_TIME_NS as u64;
+        let deadline = reference.now() + MAXIMUM_CAL_TIME_NS;
 
         self.reset_timebases(reference, source);
 
@@ -321,7 +321,7 @@ impl Clock {
                 calibration.calibrate(reference, &source);
                 calibration
             });
-            ClockType::Counter(AtomicCell::new(0), reference, source, *calibration)
+            ClockType::Counter(reference, source, *calibration)
         } else {
             ClockType::Monotonic(reference)
         };
@@ -351,19 +351,7 @@ impl Clock {
     pub fn now(&self) -> Instant {
         match &self.inner {
             ClockType::Monotonic(monotonic) => Instant(monotonic.now()),
-            ClockType::Counter(last, _, counter, _) => {
-                let now = counter.now();
-                // Update the last timestamp with `now`, if `now` is greater
-                // than the current value.
-                // TODO: replace with `AtomicCell::fetch_max` once `crossbeam-utils` implements it.
-                let last = last
-                    .fetch_update(|current| Some(current.max(now)))
-                    .expect("should never return an error");
-                // `fetch_max` always returns the previous value, so we need to
-                // see which is *actually* the max.
-                let actual = std::cmp::max(now, last);
-                self.scaled(actual)
-            }
+            ClockType::Counter(_, counter, _) => self.scaled(counter.now()),
             ClockType::Mock(mock) => Instant(mock.value()),
         }
     }
@@ -379,7 +367,7 @@ impl Clock {
     pub fn raw(&self) -> u64 {
         match &self.inner {
             ClockType::Monotonic(monotonic) => monotonic.now(),
-            ClockType::Counter(_, _, counter, _) => counter.now(),
+            ClockType::Counter(_, counter, _) => counter.now(),
             ClockType::Mock(mock) => mock.value(),
         }
     }
@@ -393,7 +381,7 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn scaled(&self, value: u64) -> Instant {
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => calibration.scale_src_to_ref(value),
+            ClockType::Counter(_, _, calibration) => calibration.scale_src_to_ref(value),
             _ => value,
         };
 
@@ -417,7 +405,7 @@ impl Clock {
 
         let delta = end.wrapping_sub(start);
         let scaled = match &self.inner {
-            ClockType::Counter(_, _, _, calibration) => {
+            ClockType::Counter(_, _, calibration) => {
                 mul_div_po2_u64(delta, calibration.scale_factor, calibration.scale_shift)
             }
             _ => delta,
@@ -450,7 +438,7 @@ impl Clock {
     #[cfg(test)]
     fn reset_timebase(&mut self) -> bool {
         match &mut self.inner {
-            ClockType::Counter(_, reference, source, calibration) => {
+            ClockType::Counter(reference, source, calibration) => {
                 calibration.reset_timebases(*reference, source);
                 true
             }
@@ -471,12 +459,9 @@ impl Clone for ClockType {
         match self {
             ClockType::Mock(mock) => ClockType::Mock(mock.clone()),
             ClockType::Monotonic(monotonic) => ClockType::Monotonic(*monotonic),
-            ClockType::Counter(last, monotonic, counter, calibration) => ClockType::Counter(
-                AtomicCell::new(last.load()),
-                *monotonic,
-                counter.clone(),
-                *calibration,
-            ),
+            ClockType::Counter(monotonic, counter, calibration) => {
+                ClockType::Counter(*monotonic, counter.clone(), *calibration)
+            }
         }
     }
 }
