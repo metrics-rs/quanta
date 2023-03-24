@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1679495454830,
+  "lastUpdate": 1679677352833,
   "repoUrl": "https://github.com/metrics-rs/quanta",
   "entries": {
     "Benchmark": [
@@ -3738,6 +3738,234 @@ window.BENCHMARK_DATA = {
           {
             "name": "quanta/quanta_recent",
             "value": 2,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_recent",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "committer": {
+            "email": "toby@nuclearfurnace.com",
+            "name": "Toby Lawrence",
+            "username": "tobz"
+          },
+          "distinct": true,
+          "id": "a4f20550e07c571e2d3d537c72ff4970f04f0a37",
+          "message": "fix clobbering of global recent time making tests flaky + formatting",
+          "timestamp": "2023-03-24T12:52:29-04:00",
+          "tree_id": "2de2acd325f97fcbd730e2d8447f0e7cc765483c",
+          "url": "https://github.com/metrics-rs/quanta/commit/a4f20550e07c571e2d3d537c72ff4970f04f0a37"
+        },
+        "date": 1679677351540,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "stdlib/now/1",
+            "value": 25,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/2",
+            "value": 26,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/3",
+            "value": 39,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/4",
+            "value": 49,
+            "range": "± 7",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/5",
+            "value": 64,
+            "range": "± 12",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/6",
+            "value": 78,
+            "range": "± 17",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/7",
+            "value": 85,
+            "range": "± 21",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/8",
+            "value": 95,
+            "range": "± 23",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/9",
+            "value": 106,
+            "range": "± 28",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/10",
+            "value": 133,
+            "range": "± 33",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/11",
+            "value": 124,
+            "range": "± 36",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/now/12",
+            "value": 144,
+            "range": "± 37",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/1",
+            "value": 28,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/2",
+            "value": 31,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/3",
+            "value": 43,
+            "range": "± 5",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/4",
+            "value": 57,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/5",
+            "value": 71,
+            "range": "± 16",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/6",
+            "value": 97,
+            "range": "± 20",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/7",
+            "value": 95,
+            "range": "± 19",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/8",
+            "value": 109,
+            "range": "± 25",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/9",
+            "value": 125,
+            "range": "± 29",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/10",
+            "value": 138,
+            "range": "± 30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/11",
+            "value": 150,
+            "range": "± 45",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/now/12",
+            "value": 161,
+            "range": "± 38",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_now",
+            "value": 26,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "stdlib/instant_delta",
+            "value": 55,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now",
+            "value": 25,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_now_delta",
+            "value": 56,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_instant_now",
+            "value": 29,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw",
+            "value": 25,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_scaled",
+            "value": 26,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_raw_delta",
+            "value": 56,
+            "range": "± 3",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "quanta/quanta_recent",
+            "value": 1,
             "range": "± 0",
             "unit": "ns/iter"
           },
