@@ -10,37 +10,21 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Rust Nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-        components: rustfmt, clippy
+      run: rustup default nightly
     - name: Check Formatting
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+      run: cargo fmt --all -- --check
   feature-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+    - uses: actions/checkout@v3
+    - name: Install Rust Stable
+      run: rustup default stable
     - name: Install cargo-hack
-      uses: actions-rs/cargo@v1
-      with:
-        command: install
-        args: cargo-hack
+      run: cargo install cargo-hack
     - name: Check Feature Matrix
-      uses: actions-rs/cargo@v1
-      with:
-        command: hack
-        args: build --all --all-targets --feature-powerset
+      run: cargo hack build --all --all-targets --feature-powerset
   test:
     name: Test ${{ matrix.rust_version }}/${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -49,20 +33,16 @@ jobs:
         rust_version: ['1.60.0', 'stable', 'nightly']
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Rust ${{ matrix.rust_version }}
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust_version }}
-        override: true
+      run: rustup default ${{ matrix.rust_version }}
     - name: Run Tests
       run: cargo test --no-default-features --features=prost -- --test-threads=1
   cross-test:
-    name: Test ${{ matrix.rust_version }}/${{ matrix.target }}
+    name: Test ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_version: ['stable']
         target:
           - aarch64-unknown-linux-gnu
           - armv5te-unknown-linux-gnueabi
@@ -71,35 +51,23 @@ jobs:
           - mips-unknown-linux-gnu
           - mipsel-unknown-linux-gnu
     steps:
-    - uses: actions/checkout@v2
-    - name: Install Rust ${{ matrix.rust_version }}
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust_version }}
-        target: ${{ matrix.target }}
-        override: true
-    - uses: actions-rs/cargo@v1
-      with:
-        use-cross: true
-        command: test
-        args: --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
+    - uses: actions/checkout@v3
+    - name: Install Rust Stable
+      run: rustup default stable
+    - name: Install Cross
+      run: cargo install cross --git https://github.com/cross-rs/cross
+    - name: Run Tests
+      run: cross test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
   docs:
     runs-on: ubuntu-latest
     env:
       RUSTDOCFLAGS: -Dwarnings
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Rust Nightly
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-        components: rust-docs
+      run: rustup default nightly
     - name: Check Docs
-      uses: actions-rs/cargo@v1
-      with:
-        command: doc
-        args: --all-features --workspace --no-deps
+      run: cargo doc --all-features --workspace --no-deps
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -107,24 +75,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Install Rust Stable
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: 'stable'
-        override: true
+      run: rustup default stable
     - name: Run Benchmarks
-      run: cargo bench -- --output-format bencher | tee output.txt
-    - name: Process benchmark results
-      uses: rhysd/github-action-benchmark@v1
-      with:
-        name: bench-${{ matrix.os }}
-        tool: 'cargo'
-        output-file-path: output.txt
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        comment-always: true
-        alert-threshold: '10%'
-        comment-on-alert: true
-        fail-on-alert: true
-        alert-comment-cc-users: '@tobz'
-        auto-push: ${{ github.ref == 'refs/heads/main' }}
+      run: cargo bench -- --output-format bencher
