@@ -10,13 +10,13 @@ use std::time::Duration;
 ///
 /// ## Monotonicity
 ///
-/// On all platforms `Instant` will try to use an OS API that guarantees monotonic behavior
-/// if available, which is the case for all supported platforms.
-/// In practice such guarantees are – under rare circumstances – broken by hardware, virtualization
-/// or operating system bugs. To work around these bugs and platforms not offering monotonic clocks
-/// [`duration_since`], [`elapsed`] and [`sub`] saturate to zero. In older `quanta` versions this
-/// lead to a panic instead. [`checked_duration_since`] can be used to detect and handle situations
-/// where monotonicity is violated, or `Instant`s are subtracted in the wrong order.
+/// On all platforms, `Instant` will try to use an OS API that guarantees monotonic behavior if
+/// available, which is the case for all supported platforms.  In practice such guarantees are –
+/// under rare circumstances – broken by hardware, virtualization or operating system bugs. To work
+/// around these bugs and platforms not offering monotonic clocks [`duration_since`], [`elapsed`]
+/// and [`sub`] saturate to zero. In older `quanta` versions this lead to a panic instead.
+/// [`checked_duration_since`] can be used to detect and handle situations where monotonicity is
+/// violated, or `Instant`s are subtracted in the wrong order.
 ///
 /// This workaround obscures programming errors where earlier and later instants are accidentally
 /// swapped. For this reason future `quanta` versions may reintroduce panics.
@@ -25,7 +25,6 @@ use std::time::Duration;
 /// [`elapsed`]: Instant::elapsed
 /// [`sub`]: Instant::sub
 /// [`checked_duration_since`]: Instant::checked_duration_since
-///
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Instant(pub(crate) u64);
 
@@ -66,9 +65,9 @@ impl Instant {
     ///
     /// # Panics
     ///
-    /// Previous `quanta` versions panicked when `earlier` was later than `self`. Currently this
-    /// method saturates. Future versions may reintroduce the panic in some circumstances.
-    /// See [Monotonicity].
+    /// Previous versions of this method panicked when earlier was later than `self`. Currently,
+    /// this method saturates to zero. Future versions may reintroduce the panic in some
+    /// circumstances. See [Monotonicity].
     ///
     /// [Monotonicity]: Instant#monotonicity
     ///
@@ -118,6 +117,11 @@ impl Instant {
     /// Returns the amount of time elapsed from another instant to this one, or zero duration if
     /// that instant is earlier than this one.
     ///
+    /// Due to [monotonicity bugs], even under correct logical ordering of the passed `Instant`s,
+    /// this method can return `None`.
+    ///
+    /// [monotonicity bugs]: Instant#monotonicity
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -140,9 +144,9 @@ impl Instant {
     ///
     /// # Panics
     ///
-    /// Previous `quanta` versions panicked when the current time was earlier than self.
-    /// Currently this method returns a Duration of zero in that case.
-    /// Future versions may reintroduce the panic. See [Monotonicity].
+    /// Previous `quanta` versions panicked when the current time was earlier than self.  Currently
+    /// this method returns a Duration of zero in that case.  Future versions may reintroduce the
+    /// panic. See [Monotonicity].
     ///
     /// [Monotonicity]: Instant#monotonicity
     ///
@@ -273,10 +277,14 @@ impl Into<prost_types::Timestamp> for Instant {
 
 #[cfg(test)]
 mod tests {
+    use once_cell::sync::Lazy;
+
     use super::Instant;
     use crate::{with_clock, Clock};
-    use std::thread;
     use std::time::Duration;
+    use std::{sync::Mutex, thread};
+
+    static RECENT_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     #[test]
     #[cfg_attr(
@@ -284,6 +292,8 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_now() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
@@ -302,6 +312,8 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_recent() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+
         // Ensures that the recent global value is zero so that the fallback logic can kick in.
         crate::set_recent(Instant(0));
 
@@ -314,7 +326,13 @@ mod tests {
 
         let result = t1 - t0;
         let threshold = Duration::from_millis(14);
-        assert!(result > threshold);
+        assert!(
+            result > threshold,
+            "t1 should be greater than t0 by at least 14ms, was only {}ms (t0: {}, t1: {})",
+            result.as_millis(),
+            t0.0,
+            t1.0
+        );
 
         crate::set_recent(Instant(1));
         let t2 = Instant::recent();
@@ -329,6 +347,11 @@ mod tests {
         wasm_bindgen_test::wasm_bindgen_test
     )]
     fn test_mocking() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+
+        // Ensures that the recent global value is zero so that the fallback logic can kick in.
+        crate::set_recent(Instant(0));
+
         let (clock, mock) = Clock::mock();
         with_clock(&clock, move || {
             let t0 = Instant::now();
