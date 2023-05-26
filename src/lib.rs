@@ -388,8 +388,7 @@ impl Clock {
         Instant(scaled)
     }
 
-    /// Calculates the delta in nanoseconds scaled to reference time in nanoseconds
-    /// between two measurements.
+    /// Calculates the delta, in nanoseconds, between two raw measurements.
     ///
     /// This method is very similar to [`delta`] but reduces overhead
     /// for high-frequency measurements that work with nanosecond
@@ -415,14 +414,15 @@ impl Clock {
         }
     }
 
-    /// Calculates the delta between two measurements, and scales to reference time.
+    /// Calculates the delta between two raw measurements.
     ///
     /// This method is slightly faster when you know you need the delta between two raw
     /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
     ///
-    /// In code that uses `clock.delta(start, end).as_nanos()` with
-    /// high frequency, consider [`delta_as_nanos`] instead, as that
-    /// avoids the round-trip conversion through [`Duration`].
+   /// In code that simply needs access to the whole number of nanoseconds
+   /// between the two measurements, consider [`Clock::delta_as_nanos`]
+   /// instead, which is slightly faster than having to call both this method
+   /// and [`Duration::as_nanos`].
     ///
     /// [`scaled`]: Clock::scaled
     /// [`delta_as_nanos`]: Clock::delta_as_nanos
