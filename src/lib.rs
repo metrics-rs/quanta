@@ -419,10 +419,10 @@ impl Clock {
     /// This method is slightly faster when you know you need the delta between two raw
     /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
     ///
-   /// In code that simply needs access to the whole number of nanoseconds
-   /// between the two measurements, consider [`Clock::delta_as_nanos`]
-   /// instead, which is slightly faster than having to call both this method
-   /// and [`Duration::as_nanos`].
+    /// In code that simply needs access to the whole number of nanoseconds
+    /// between the two measurements, consider [`Clock::delta_as_nanos`]
+    /// instead, which is slightly faster than having to call both this method
+    /// and [`Duration::as_nanos`].
     ///
     /// [`scaled`]: Clock::scaled
     /// [`delta_as_nanos`]: Clock::delta_as_nanos
