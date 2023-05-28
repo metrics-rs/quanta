@@ -43,6 +43,15 @@ fn time_quanta_raw_delta(b: &mut Bencher) {
     })
 }
 
+fn time_quanta_raw_delta_as_nanos(b: &mut Bencher) {
+    let clock = Clock::new();
+    b.iter(|| {
+        let start = clock.raw();
+        let end = clock.raw();
+        clock.delta_as_nanos(start, end)
+    })
+}
+
 fn time_quanta_now_delta(b: &mut Bencher) {
     let clock = Clock::new();
     b.iter(|| {
@@ -75,6 +84,7 @@ fn benchmark(c: &mut Criterion) {
     q_group.bench_function("quanta_raw", time_quanta_raw);
     q_group.bench_function("quanta_raw_scaled", time_quanta_raw_scaled);
     q_group.bench_function("quanta_raw_delta", time_quanta_raw_delta);
+    q_group.bench_function("quanta_raw_delta_as_nanos", time_quanta_raw_delta_as_nanos);
     q_group.bench_function("quanta_recent", time_quanta_recent);
     q_group.bench_function("quanta_instant_recent", time_quanta_instant_recent);
     q_group.finish();

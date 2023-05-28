@@ -388,29 +388,46 @@ impl Clock {
         Instant(scaled)
     }
 
-    /// Calculates the delta between two measurements, and scales to reference time.
+    /// Calculates the delta, in nanoseconds, between two raw measurements.
     ///
-    /// This method is slightly faster when you know you need the delta between two raw
-    /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
+    /// This method is very similar to [`delta`] but reduces overhead
+    /// for high-frequency measurements that work with nanosecond
+    /// counts internally, as it avoids the conversion of the delta
+    /// into [`Duration`].
     ///
-    /// [`scaled`]: Clock::scaled
-    pub fn delta(&self, start: u64, end: u64) -> Duration {
+    /// [`delta`]: Clock::delta
+    pub fn delta_as_nanos(&self, start: u64, end: u64) -> u64 {
         // Safety: we want wrapping_sub on the end/start delta calculation so that two measurements
         // split across a rollover boundary still return the right result.  However, we also know
         // the TSC could potentially give us different values between cores/sockets, so we're just
         // doing our due diligence here to make sure we're not about to create some wacky duration.
         if end <= start {
-            return Duration::new(0, 0);
+            return 0;
         }
 
         let delta = end.wrapping_sub(start);
-        let scaled = match &self.inner {
+        match &self.inner {
             ClockType::Counter(_, _, calibration) => {
                 mul_div_po2_u64(delta, calibration.scale_factor, calibration.scale_shift)
             }
             _ => delta,
-        };
-        Duration::from_nanos(scaled)
+        }
+    }
+
+    /// Calculates the delta between two raw measurements.
+    ///
+    /// This method is slightly faster when you know you need the delta between two raw
+    /// measurements, or a start/end measurement, than using [`scaled`] for both conversions.
+    ///
+   /// In code that simply needs access to the whole number of nanoseconds
+   /// between the two measurements, consider [`Clock::delta_as_nanos`]
+   /// instead, which is slightly faster than having to call both this method
+   /// and [`Duration::as_nanos`].
+    ///
+    /// [`scaled`]: Clock::scaled
+    /// [`delta_as_nanos`]: Clock::delta_as_nanos
+    pub fn delta(&self, start: u64, end: u64) -> Duration {
+        Duration::from_nanos(self.delta_as_nanos(start, end))
     }
 
     /// Gets the most recent current time, scaled to reference time.
