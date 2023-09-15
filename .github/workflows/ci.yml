@@ -48,16 +48,32 @@ jobs:
           - armv5te-unknown-linux-gnueabi
           - arm-unknown-linux-gnueabi
           - armv7-unknown-linux-gnueabihf
-          - mips-unknown-linux-gnu
-          - mipsel-unknown-linux-gnu
     steps:
     - uses: actions/checkout@v3
-    - name: Install Rust Stable
+    - name: Ensure Rust up-to-date
       run: rustup default stable
     - name: Install Cross
       run: cargo install cross --git https://github.com/cross-rs/cross
     - name: Run Tests
       run: cross test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
+  cross-test-mips-mipssel:
+    name: Test ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - mips-unknown-linux-gnu
+          - mipsel-unknown-linux-gnu
+    steps:
+    - uses: actions/checkout@v3
+    - name: Ensure Rust up-to-date
+      run: rustup default nightly
+    - name: Install Cross
+      run: cargo install cross --git https://github.com/cross-rs/cross
+    - name: Run Tests
+      run: cross test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
+      env:
+        RUSTFLAGS: "-C opt-level=1"
   docs:
     runs-on: ubuntu-latest
     env:
