@@ -66,7 +66,7 @@ web-sys = { version = "0.3", features = ["Window", "Performance"] }
 wasi = "0.11"
 
 [dev-dependencies]
-average = "0.13"
+average = "0.14"
 criterion = "=0.3.3"
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
