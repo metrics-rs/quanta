@@ -71,7 +71,7 @@ jobs:
     - name: Install Cross
       run: cargo install cross --git https://github.com/cross-rs/cross
     - name: Run Tests
-      run: cross test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
+      run: cross +nightly test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
       env:
         RUSTFLAGS: "-C opt-level=1"
   docs:
