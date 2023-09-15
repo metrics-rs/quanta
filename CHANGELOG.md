@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.11.1] - 2023-05-28
+
+### Added
+
+- Added a new method, `Clock::delta_as_nanos`, for getting the delta between two raw measurements as
+  the whole number of nanoseconds instead of the initial conversion to `Duration`. ([#86])
+
+[#86]: https://github.com/metrics-rs/quanta/pull/86
+
 ## [0.11.0] - 2023-03-24
 
 ### Added
@@ -209,7 +218,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/metrics-rs/quanta/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/metrics-rs/quanta/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/metrics-rs/quanta/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/metrics-rs/quanta/releases/tag/v0.10.0
