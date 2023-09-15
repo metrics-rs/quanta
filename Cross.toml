@@ -1,0 +1,11 @@
+[target.mips-unknown-linux-gnu]
+build-std = true
+
+[target.mips-unknown-linux-gnu.env]
+passthrough = ["RUSTFLAGS"]
+
+[target.mipsel-unknown-linux-gnu]
+build-std = true
+
+[target.mipsel-unknown-linux-gnu.env]
+passthrough = ["RUSTFLAGS"]
