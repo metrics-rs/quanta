@@ -42,10 +42,10 @@ prost-types = { version = "0.11", default-features = false, optional = true }
 crossbeam-utils = "0.8.5"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
-raw-cpuid = "10.2"
+raw-cpuid = "11.0"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-raw-cpuid = "10.2"
+raw-cpuid = "11.0"
 
 [target.'cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows", target_arch = "wasm32")))'.dependencies]
 libc = "0.2"
