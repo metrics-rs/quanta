@@ -148,6 +148,7 @@ use once_cell::sync::OnceCell;
 
 mod clocks;
 use self::clocks::{Counter, Monotonic};
+mod detection;
 mod mock;
 pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
@@ -201,7 +202,7 @@ impl Calibration {
             ref_time: 0,
             src_time: 0,
             scale_factor: 1,
-            scale_shift: 1,
+            scale_shift: 0,
         }
     }
 
@@ -217,6 +218,14 @@ impl Calibration {
     }
 
     fn calibrate(&mut self, reference: Monotonic, source: &Counter) {
+        // This is a fast path for ARM, as on ARMv8.6-A and later, the system counter ticks at a
+        // fixed rate of 1GHz, which means we can skip the calibration process entirely and use the
+        // raw counter measurements as they're already in the reference timebase.
+        if let Some(1_000_000_000) = source.freq_hz() {
+            self.reset_timebases(reference, source);
+            return;
+        }
+
         let mut variance = Variance::default();
         let deadline = reference.now() + MAXIMUM_CAL_TIME_NS;
 
@@ -314,7 +323,7 @@ impl Clock {
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
         let reference = Monotonic::default();
-        let inner = if has_tsc_support() {
+        let inner = if detection::has_counter_support() {
             let source = Counter::default();
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
                 let mut calibration = Calibration::new();
@@ -538,26 +547,6 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
     v *= u128::from(numer);
     v >>= denom;
     v as u64
-}
-
-#[allow(dead_code)]
-#[cfg(all(target_arch = "x86_64", target_feature = "sse2"))]
-fn has_tsc_support() -> bool {
-    let cpuid = raw_cpuid::CpuId::new();
-    let has_invariant_tsc = cpuid
-        .get_advanced_power_mgmt_info()
-        .map_or(false, |apm| apm.has_invariant_tsc());
-    let has_rdtscp = cpuid
-        .get_extended_processor_and_feature_identifiers()
-        .map_or(false, |epf| epf.has_rdtscp());
-
-    has_invariant_tsc && has_rdtscp
-}
-
-#[allow(dead_code)]
-#[cfg(not(all(target_arch = "x86_64", target_feature = "sse2")))]
-fn has_tsc_support() -> bool {
-    false
 }
 
 #[cfg(test)]
