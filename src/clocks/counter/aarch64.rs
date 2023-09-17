@@ -1,9 +1,9 @@
 use core::arch::asm;
 
 #[derive(Clone, Debug, Default)]
-pub struct ArmCounter;
+pub struct Counter;
 
-impl ArmCounter {
+impl Counter {
     pub fn now(&self) -> u64 {
 		let count: u64;
 
