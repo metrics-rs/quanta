@@ -222,8 +222,12 @@ impl Calibration {
         // fixed rate of 1GHz, which means we can skip the calibration process entirely and use the
         // raw counter measurements as they're already in the reference timebase.
         if let Some(1_000_000_000) = source.freq_hz() {
+            println!("got 1GHz system counter, skipping calibration");
+
             self.reset_timebases(reference, source);
             return;
+        } else {
+            println!("got {:?} for counter freq", source.freq_hz());
         }
 
         let mut variance = Variance::default();
