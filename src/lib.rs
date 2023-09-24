@@ -314,7 +314,7 @@ impl Clock {
     ///
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
-        let reference = Monotonic;
+        let reference = Monotonic::default();
         let inner = if detection::has_counter_support() {
             let source = Counter;
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
