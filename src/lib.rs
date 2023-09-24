@@ -218,18 +218,6 @@ impl Calibration {
     }
 
     fn calibrate(&mut self, reference: Monotonic, source: &Counter) {
-        // This is a fast path for ARM, as on ARMv8.6-A and later, the system counter ticks at a
-        // fixed rate of 1GHz, which means we can skip the calibration process entirely and use the
-        // raw counter measurements as they're already in the reference timebase.
-        if let Some(1_000_000_000) = source.freq_hz() {
-            println!("got 1GHz system counter, skipping calibration");
-
-            self.reset_timebases(reference, source);
-            return;
-        } else {
-            println!("got {:?} for counter freq", source.freq_hz());
-        }
-
         let mut variance = Variance::default();
         let deadline = reference.now() + MAXIMUM_CAL_TIME_NS;
 
@@ -326,9 +314,9 @@ impl Clock {
     ///
     /// Support for TSC, etc, are checked at the time of creation, not compile-time.
     pub fn new() -> Clock {
-        let reference = Monotonic::default();
+        let reference = Monotonic;
         let inner = if detection::has_counter_support() {
-            let source = Counter::default();
+            let source = Counter;
             let calibration = GLOBAL_CALIBRATION.get_or_init(|| {
                 let mut calibration = Calibration::new();
                 calibration.calibrate(reference, &source);

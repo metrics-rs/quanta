@@ -14,14 +14,14 @@ pub fn has_counter_support() -> bool {
 
 #[cfg(target_arch = "aarch64")]
 pub fn has_counter_support() -> bool {
-	// AArch64 implies ARMv8 or above, where the system counter is always present.
+    // AArch64 implies ARMv8 or above, where the system counter is always present.
     true
 }
 
 #[allow(dead_code)]
 #[cfg(not(any(
-	all(target_arch = "x86_64", target_feature = "sse2"),
-	target_arch = "aarch64",
+    all(target_arch = "x86_64", target_feature = "sse2"),
+    target_arch = "aarch64",
 )))]
 pub fn has_counter_support() -> bool {
     false
