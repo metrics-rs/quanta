@@ -2,7 +2,9 @@ const WASM_WRONG_ENV: &str = "failed to find the global `window` object: the `wa
 const WASM_MISSING_WINDOW_PERF: &str = "failed to find `window.performance`";
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Monotonic;
+pub struct Monotonic {
+    _default: (),
+}
 
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 impl Monotonic {

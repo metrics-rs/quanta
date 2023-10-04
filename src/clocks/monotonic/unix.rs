@@ -1,5 +1,7 @@
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Monotonic;
+pub struct Monotonic {
+    _default: (),
+}
 
 impl Monotonic {
     #[allow(clippy::cast_sign_loss)]
