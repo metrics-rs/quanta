@@ -8,6 +8,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Experimental support for ARM. ([#91])
+
+[#91]: https://github.com/metrics-rs/quanta/pull/91 
+
+### Changed
+
+- Update `raw-cpuid` to 11.0.
+
 ## [0.11.1] - 2023-05-28
 
 ### Added
