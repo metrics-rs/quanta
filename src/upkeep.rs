@@ -120,6 +120,11 @@ impl Upkeep {
         let interval = self.interval;
         let clock = self.clock;
 
+        // Note: spawning `quanta-upkeep` thread may take a significant amount of time. Thus, it is
+        // possible for a user to read a 0 value from `Clock::recent` before `quanta-upkeep` has
+        // started. To avoid that, make sure the recent time is initialized to some measurement.
+        set_recent(clock.now());
+
         let done = Arc::new(AtomicBool::new(false));
         let their_done = done.clone();
 
