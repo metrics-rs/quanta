@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Populate global recent time before `Upkeep` starts. ([#95])
+
+[#95]: https://github.com/metrics-rs/quanta/pull/95
+
 ## [0.12.0] - 2023-10-04
 
 ### Added
