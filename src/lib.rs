@@ -438,14 +438,12 @@ impl Clock {
     /// read directly without the need to scale to reference time.
     ///
     /// The upkeep thread must be started in order to update the time.  You can read the
-    /// documentation for [`Upkeep`][upkeep] for more information on starting the upkeep thread, as
+    /// documentation for [`Upkeep`] for more information on starting the upkeep thread, as
     /// well as the details of the "current time" mechanism.
     ///
     /// If the upkeep thread has not been started, the return value will be `0`.
     ///
     /// Returns an [`Instant`].
-    ///
-    /// [upkeep]: crate::Upkeep
     pub fn recent(&self) -> Instant {
         match &self.inner {
             ClockType::Mock(mock) => Instant(mock.value()),
