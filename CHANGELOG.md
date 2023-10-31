@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.1] - 2023-10-31
+
 ### Fixed
 
 - Populate global recent time before `Upkeep` starts. ([#95])
@@ -236,7 +238,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/metrics-rs/quanta/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/metrics-rs/quanta/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/metrics-rs/quanta/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/metrics-rs/quanta/compare/v0.10.1...v0.11.0
