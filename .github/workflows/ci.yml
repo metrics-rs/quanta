@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         rust_version: ['1.60.0', 'stable', 'nightly']
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2019, windows-2022]
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust ${{ matrix.rust_version }}
