@@ -47,14 +47,8 @@ raw-cpuid = "11.0"
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 raw-cpuid = "11.0"
 
-[target.'cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows", target_arch = "wasm32")))'.dependencies]
+[target.'cfg(not(any(target_os = "windows", target_arch = "wasm32")))'.dependencies]
 libc = "0.2"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-mach2 = "0.4"
-
-[target.'cfg(target_os = "ios")'.dependencies]
-mach2 = "0.4"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["profileapi"] }
