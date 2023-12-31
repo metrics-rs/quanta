@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed an issue with the monotonic clock for macOS/iOS where it would undermeasure time compared to
+  what would be measured by `std::time::Instant` due to using a clock source that did not account
+  for device sleep.
+
 ## [0.12.1] - 2023-10-31
 
 ### Fixed
