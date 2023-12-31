@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.2] - 2023-12-31
+
 ### Fixed
 
 - Fixed an issue with the monotonic clock for macOS/iOS where it would undermeasure time compared to
@@ -244,7 +246,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.2...HEAD
+[0.12.2]: https://github.com/metrics-rs/quanta/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/metrics-rs/quanta/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/metrics-rs/quanta/compare/v0.11.1...v0.12.0
 [0.11.1]: https://github.com/metrics-rs/quanta/compare/v0.11.0...v0.11.1
