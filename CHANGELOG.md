@@ -8,6 +8,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Changed
+
+- Disabled counter support on iOS targets even if AArch64 is present. This is due to an issue where
+  the necessary CPU instruction for reading the counter is not available on iOS.
+
 ## [0.12.2] - 2023-12-31
 
 ### Fixed
