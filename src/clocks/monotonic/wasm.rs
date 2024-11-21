@@ -1,6 +1,12 @@
-const WASM_WRONG_ENV: &str = "failed to find the global `window` object: the `wasm32-unknown-unknown` implementation only supports running in web browsers; wse `wasm32-wasi` to run elsewhere";
-const WASM_MISSING_WINDOW_PERF: &str = "failed to find `window.performance`";
+use web_sys::{
+    js_sys::Reflect,
+    wasm_bindgen::{JsCast, JsValue},
+    Performance,
+};
 
+const WASM_MISSING_GLOBAL_THIS_PERF: &str = "failed to find `globalThis.performance`";
+const WASM_UNABLE_TO_CAST_PERF: &str =
+    "Unable to cast `globalThis.performance` to Performance type";
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Monotonic {
     _default: (),
@@ -9,12 +15,15 @@ pub struct Monotonic {
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 impl Monotonic {
     pub fn now(&self) -> u64 {
-        let now = web_sys::window()
-            .expect(WASM_WRONG_ENV)
-            .performance()
-            .expect(WASM_MISSING_WINDOW_PERF)
-            .now();
-        // `window.performance.now()` returns the time in milliseconds.
+        let now = Reflect::get(
+            &web_sys::js_sys::global(),
+            &JsValue::from_str("performance"),
+        )
+        .expect(WASM_MISSING_GLOBAL_THIS_PERF)
+        .dyn_ref::<Performance>()
+        .expect(WASM_UNABLE_TO_CAST_PERF)
+        .now();
+        // `performance.now()` returns the time in milliseconds.
         return f64::trunc(now * 1_000_000.0) as u64;
     }
 }
