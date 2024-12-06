@@ -11,7 +11,7 @@ const WASM_UNABLE_TO_CAST_PERF: &str =
     "Unable to cast `globalThis.performance` to Performance type";
 
 thread_local! {
-    static GLOBAL_PERFORMANCE_INSTANCE: OnceCell<Performance> = OnceCell::new();
+    static GLOBAL_PERFORMANCE_INSTANCE: OnceCell<Performance> = const { OnceCell::new() };
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -34,6 +34,6 @@ impl Monotonic {
             performance_instance.now()
         });
         // `performance.now()` returns the time in milliseconds.
-        return f64::trunc(now * 1_000_000.0) as u64;
+        f64::trunc(now * 1_000_000.0) as u64
     }
 }
