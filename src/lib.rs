@@ -540,7 +540,7 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::{Clock, Counter, Monotonic};
     use average::{Merge, Variance};
     use std::time::{Duration, Instant};
