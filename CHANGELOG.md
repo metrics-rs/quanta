@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.4] - 2024-12-13
+
 ### Fixed
 
 - Updated WASM support to work in WebWorkers. ([#107](https://github.com/metrics-rs/quanta/pull/107))
@@ -257,7 +259,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.3...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.4...HEAD
+[0.12.4]: https://github.com/metrics-rs/quanta/compare/v0.12.3...v0.12.4
 [0.12.3]: https://github.com/metrics-rs/quanta/compare/v0.12.2...v0.12.3
 [0.12.2]: https://github.com/metrics-rs/quanta/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/metrics-rs/quanta/compare/v0.12.0...v0.12.1
