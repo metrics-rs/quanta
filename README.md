@@ -15,8 +15,8 @@
 [crate]: https://crates.io/crates/quanta
 [docs]: https://docs.rs/quanta
 
-__quanta__ is a high-speed timing library, useful for getting the current time _very quickly_, as
-well as manipulating it.
+__quanta__ is a high-speed timing library, useful for getting the current time _very quickly_, as well as manipulating
+it.
 
 ## code of conduct
 
@@ -36,10 +36,10 @@ The API documentation of this library can be found at [docs.rs/quanta](https://d
 
 ## platform / architecture support
 
-For most major platforms -- Linux, Windows, and macOS -- with processors made around or after 2008,
-you should have no problems using `quanta` with full TSC support.  `quanta` will always fallback to
-the included stdlib timing facilities if TSC support is not present.  The biggest caveat to this, as
-evidenced in the compatibility matrix below, is that we only support the TSC  on x86/x86_64 platforms.
+For most major platforms -- Linux, Windows, and macOS -- with processors made around or after 2008, you should have no
+problems using `quanta` with full TSC support. `quanta` will always fallback to the included stdlib timing facilities if
+TSC support is not present. The biggest caveat to this, as evidenced in the compatibility matrix below, is that we only
+support the TSC on `x86`/`x86_64` platforms.
 
 
 | Platform             | stdlib fallback | TSC support? | CI tests? |
@@ -54,17 +54,17 @@ evidenced in the compatibility matrix below, is that we only support the TSC  on
 
 ## performance
 
-`quanta` sits neck-and-neck with native OS time facilities: the cost of `Clock::now` is on par
-`Instant::now` from the stdlib, if not better.
+`quanta` sits neck-and-neck with native OS time facilities: the cost of `Clock::now` is on par `Instant::now` from the
+stdlib, if not better.
 
 ## why use this over stdlib?
 
-Beyond having a performance edge in specific situations, the ability to use mocked time makes it
-easier to actually test that your application is doing the right thing when time is involved.
+Beyond having a performance edge in specific situations, the ability to use mocked time makes it easier to actually test
+that your application is doing the right thing when time is involved.
 
-Additionally, and as mentioned in the general features section, `quanta` provides a safe/thin
-wrapper over accessing the Time Stamp Counter, which allows measuring cycle counts over short
-sections of code.  This can be relevant/important for accurately measuring performance-critical sections of code.
+Additionally, and as mentioned in the general features section, `quanta` provides a safe/thin wrapper over accessing the
+Time Stamp Counter, which allows measuring cycle counts over short sections of code.  This can be relevant/important for
+accurately measuring performance-critical sections of code.
 
 ## alternative crates
 

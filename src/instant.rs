@@ -292,8 +292,6 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_now() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
@@ -328,8 +326,8 @@ mod tests {
         let threshold = Duration::from_millis(14);
         assert!(
             result > threshold,
-            "t1 should be greater than t0 by at least 14ms, was only {}ms (t0: {}, t1: {})",
-            result.as_millis(),
+            "t1 should be greater than t0 by at least 14ms, was only {:?} (t0: {}, t1: {})",
+            result,
             t0.0,
             t1.0
         );

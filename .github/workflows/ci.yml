@@ -30,8 +30,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_version: ['1.60.0', 'stable', 'nightly']
-        os: [ubuntu-20.04, ubuntu-22.04, macOS-11, macOS-12, windows-2019, windows-2022]
+        rust_version: ['1.70.0', 'stable', 'nightly']
+        os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
     steps:
     - uses: actions/checkout@v3
     - name: Install Rust ${{ matrix.rust_version }}
@@ -74,6 +74,42 @@ jobs:
       run: cross +nightly test --target ${{ matrix.target }} --no-default-features --features=prost -- --test-threads=1
       env:
         RUSTFLAGS: "-C opt-level=1"
+  test-wasm-browser:
+    name: Test ${{ matrix.rust_version }}/${{ matrix.os }} (wasm32-unknown-unknown)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust_version: ['1.70.0', 'stable', 'nightly']
+        os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust ${{ matrix.rust_version }}
+      run: rustup default ${{ matrix.rust_version }}
+    - name: Install wasm32-unknown-unknown target
+      run: rustup target add wasm32-unknown-unknown
+    - name: Install wasm-pack
+      run: cargo install wasm-pack
+    - name: Run Tests
+      run: wasm-pack test --node
+  test-wasi:
+    name: Test ${{ matrix.rust_version }}/${{ matrix.os }} (wasm32-wasi)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust_version: ['1.70.0', 'stable', 'nightly']
+        os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust ${{ matrix.rust_version }}
+      run: rustup default ${{ matrix.rust_version }}
+    - name: Install wasm32-wasi target
+      run: rustup target add wasm32-wasi
+    - name: Install cargo-wasi
+      run: cargo install cargo-wasi
+    - name: Install wasmtime
+      run: curl https://wasmtime.dev/install.sh -sSf | bash
+    - name: Run Tests
+      run: cargo wasi test
   docs:
     runs-on: ubuntu-latest
     env:
