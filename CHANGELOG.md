@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Updated WASM support to work in WebWorkers. ([#107](https://github.com/metrics-rs/quanta/pull/107))
+
 ## [0.12.3] - 2024-03-31
 
 ### Changed
