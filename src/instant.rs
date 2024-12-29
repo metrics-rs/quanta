@@ -171,7 +171,7 @@ impl Instant {
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
-        let total_nanos: u64 = duration.as_nanos().try_into().ok()?;
+        let total_nanos = u64::try_from(duration.as_nanos()).ok()?;
         self.0.checked_add(total_nanos).map(Instant)
     }
 
@@ -179,7 +179,7 @@ impl Instant {
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
-        let total_nanos: u64 = duration.as_nanos().try_into().ok()?;
+        let total_nanos = u64::try_from(duration.as_nanos()).ok()?;
         self.0.checked_sub(total_nanos).map(Instant)
     }
 }
