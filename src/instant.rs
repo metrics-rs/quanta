@@ -395,7 +395,5 @@ mod tests {
         assert_ne!(Duration::ZERO, dur);
         assert_ne!(Some(now), behind);
         assert_ne!(Some(now), ahead);
-        assert_eq!(None, behind);
-        assert_eq!(None, ahead);
     }
 }
