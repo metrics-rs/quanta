@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Fixed an issue with lossy truncation in checked arithemtic methods for `Instant`. ([#110](https://github.com/metrics-rs/quanta/pull/110))
+
 ## [0.12.4] - 2024-12-13
 
 ### Fixed
