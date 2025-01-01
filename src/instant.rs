@@ -376,6 +376,10 @@ mod tests {
 
     // Test fix for issue #109
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
     fn checked_arithmetic_u64_overflow() {
         fn nanos_to_dur(total_nanos: u128) -> Duration {
             let nanos_per_sec = Duration::from_secs(1).as_nanos();
