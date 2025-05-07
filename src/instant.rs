@@ -307,6 +307,8 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_now() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
@@ -403,6 +405,8 @@ mod tests {
             dur
         }
 
+        let _guard = RECENT_LOCK.lock().unwrap();
+
         let dur = nanos_to_dur(1 << 64);
         let now = Instant::now();
 
@@ -416,6 +420,8 @@ mod tests {
 
     #[test]
     fn test_into_std_instant() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
         let instant = Instant::now();
         let std_instant: std::time::Instant = instant.into();
         let instant_from_std: Instant = std_instant.into();
@@ -434,6 +440,8 @@ mod tests {
 
     #[test]
     fn test_from_std_instant() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
         let std_instant: std::time::Instant = std::time::Instant::now();
         let instant: Instant = std_instant.into();
         let std_instant_from_instant: std::time::Instant = instant.into();
