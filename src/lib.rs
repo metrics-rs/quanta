@@ -259,7 +259,7 @@ impl Calibration {
 
                 if samples > MINIMUM_CAL_ROUNDS
                     && mwe < MAXIMUM_CAL_ERROR_NS as f64
-                    && mean_error / mean <= 1.0
+                    && mean_error <= mean
                 {
                     break;
                 }
