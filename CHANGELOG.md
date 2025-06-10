@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.6] - 2025-06-10
+
 ### Fixed
 
 - Avoid potential divide by zero in calibration loop. ([#113](https://github.com/metrics-rs/quanta/pull/113))
@@ -269,7 +271,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.5...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.6...HEAD
+[0.12.6]: https://github.com/metrics-rs/quanta/compare/v0.12.5...v0.12.6
 [0.12.5]: https://github.com/metrics-rs/quanta/compare/v0.12.4...v0.12.5
 [0.12.4]: https://github.com/metrics-rs/quanta/compare/v0.12.3...v0.12.4
 [0.12.3]: https://github.com/metrics-rs/quanta/compare/v0.12.2...v0.12.3
