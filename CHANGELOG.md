@@ -8,6 +8,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Fixed
+
+- Avoid potential divide by zero in calibration loop. ([#113](https://github.com/metrics-rs/quanta/pull/113))
+
 ## [0.12.5] - 2025-01-01
 
 ### Fixed
