@@ -2,6 +2,7 @@ use std::cmp::{Ord, Ordering, PartialOrd};
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
+use crate::clocks::{from_std_instant, to_std_instant};
 
 /// A point-in-time wall-clock measurement.
 ///
@@ -84,8 +85,8 @@ impl Instant {
     /// let new_now = clock.now();
     /// println!("{:?}", new_now.duration_since(now));
     /// ```
-    pub fn duration_since(&self, earlier: Instant) -> Duration {
-        self.checked_duration_since(earlier).unwrap_or_default()
+    pub fn duration_since(&self, earlier: impl Into<Instant>) -> Duration {
+        self.checked_duration_since(earlier.into()).unwrap_or_default()
     }
 
     /// Returns the amount of time elapsed from another instant to this one, or `None` if that
@@ -110,8 +111,8 @@ impl Instant {
     /// println!("{:?}", new_now.checked_duration_since(now));
     /// println!("{:?}", now.checked_duration_since(new_now)); // None
     /// ```
-    pub fn checked_duration_since(&self, earlier: Instant) -> Option<Duration> {
-        self.0.checked_sub(earlier.0).map(Duration::from_nanos)
+    pub fn checked_duration_since(&self, earlier: impl Into<Instant>) -> Option<Duration> {
+        self.0.checked_sub(earlier.into().0).map(Duration::from_nanos)
     }
 
     /// Returns the amount of time elapsed from another instant to this one, or zero duration if
@@ -136,8 +137,8 @@ impl Instant {
     /// println!("{:?}", new_now.saturating_duration_since(now));
     /// println!("{:?}", now.saturating_duration_since(new_now)); // 0ns
     /// ```
-    pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
-        self.checked_duration_since(earlier).unwrap_or_default()
+    pub fn saturating_duration_since(&self, earlier: impl Into<Instant>) -> Duration {
+        self.checked_duration_since(earlier.into()).unwrap_or_default()
     }
 
     /// Returns the amount of time elapsed since this instant was created.
@@ -277,6 +278,18 @@ impl Into<prost_types::Timestamp> for Instant {
     }
 }
 
+impl From<Instant> for std::time::Instant {
+    fn from(val: Instant) -> Self {
+        to_std_instant(val.0)
+    }
+}
+
+impl From<std::time::Instant> for Instant {
+    fn from(val: std::time::Instant) -> Self {
+        Instant(from_std_instant(val))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use once_cell::sync::Lazy;
@@ -294,6 +307,8 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_now() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
@@ -390,6 +405,8 @@ mod tests {
             dur
         }
 
+        let _guard = RECENT_LOCK.lock().unwrap();
+
         let dur = nanos_to_dur(1 << 64);
         let now = Instant::now();
 
@@ -399,5 +416,36 @@ mod tests {
         assert_ne!(Duration::ZERO, dur);
         assert_ne!(Some(now), behind);
         assert_ne!(Some(now), ahead);
+    }
+
+    #[test]
+    fn test_into_std_instant() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
+        let instant = Instant::now();
+        let std_instant: std::time::Instant = instant.into();
+        let instant_from_std: Instant = std_instant.into();
+        
+        assert_eq!(instant, instant_from_std);
+        
+        thread::sleep(Duration::from_millis(1));
+        
+        let now = Instant::now();
+
+        assert_eq!(
+            now.duration_since(instant),
+            now.duration_since(std_instant)
+        );
+    }
+
+    #[test]
+    fn test_from_std_instant() {
+        let _guard = RECENT_LOCK.lock().unwrap();
+        
+        let std_instant: std::time::Instant = std::time::Instant::now();
+        let instant: Instant = std_instant.into();
+        let std_instant_from_instant: std::time::Instant = instant.into();
+
+        assert_eq!(std_instant, std_instant_from_instant);
     }
 }
