@@ -1,5 +1,5 @@
 use std::mem;
-use winapi::um::profileapi;
+use windows_sys::Win32::System::Performance;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Monotonic {
@@ -11,12 +11,12 @@ impl Monotonic {
         let raw = unsafe {
             // TODO: Can we do any better than the `mem::zeroed` call here?
             let mut count = mem::zeroed();
-            if profileapi::QueryPerformanceCounter(&mut count) == 0 {
+            if Performance::QueryPerformanceCounter(&mut count) <= 0 {
                 unreachable!(
                     "QueryPerformanceCounter on Windows XP or later should never return zero!"
                 );
             }
-            *count.QuadPart() as u64
+            count as u64
         };
         raw * self.factor
     }
@@ -27,12 +27,12 @@ impl Default for Monotonic {
         let denom = unsafe {
             // TODO: Can we do any better than the `mem::zeroed` call here?
             let mut freq = mem::zeroed();
-            if profileapi::QueryPerformanceFrequency(&mut freq) == 0 {
+            if Performance::QueryPerformanceFrequency(&mut freq) <= 0 {
                 unreachable!(
                     "QueryPerformanceFrequency on Windows XP or later should never return zero!"
                 );
             }
-            *freq.QuadPart() as u64
+            freq as u64
         };
 
         Self {
