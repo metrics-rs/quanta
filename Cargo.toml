@@ -61,6 +61,7 @@ wasi = "0.11"
 [dev-dependencies]
 average = "0.14"
 criterion = "=0.3.3"
+serial_test = "3.2"
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies]
 wasm-bindgen-test = "0.3"

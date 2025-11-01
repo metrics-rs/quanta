@@ -61,8 +61,10 @@ impl Variance {
 #[cfg(test)]
 mod tests {
     use super::Variance;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn basic() {
         let inputs = &[5.0, 10.0, 12.0, 15.0, 20.0];
         let mut variance = Variance::default();

@@ -542,6 +542,7 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::Clock;
+    use serial_test::serial;
 
     #[cfg(not(target_arch = "wasm32"))]
     use super::{Counter, Monotonic};
@@ -557,6 +558,7 @@ mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
+    #[serial]
     fn test_mock() {
         let (clock, mock) = Clock::mock();
         assert_eq!(clock.now().0, 0);
@@ -565,6 +567,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -575,6 +578,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -585,6 +589,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -598,6 +603,7 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
+    #[serial]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     fn test_reference_source_calibration() {
         let mut clock = Clock::new();
@@ -681,6 +687,7 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
+    #[serial]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     fn measure_source_reference_self_timing() {
         let source = Counter::default();

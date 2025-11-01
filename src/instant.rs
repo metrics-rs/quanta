@@ -279,20 +279,18 @@ impl Into<prost_types::Timestamp> for Instant {
 
 #[cfg(test)]
 mod tests {
-    use once_cell::sync::Lazy;
-
     use super::Instant;
     use crate::{with_clock, Clock};
+    use serial_test::serial;
+    use std::thread;
     use std::time::Duration;
-    use std::{sync::Mutex, thread};
-
-    static RECENT_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     #[test]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         ignore = "WASM thread cannot sleep"
     )]
+    #[serial]
     fn test_now() {
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
@@ -311,9 +309,8 @@ mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         ignore = "WASM thread cannot sleep"
     )]
+    #[serial]
     fn test_recent() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
         // Ensures that the recent global value is zero so that the fallback logic can kick in.
         crate::set_recent(Instant(0));
 
@@ -346,9 +343,8 @@ mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
+    #[serial]
     fn test_mocking() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
         // Ensures that the recent global value is zero so that the fallback logic can kick in.
         crate::set_recent(Instant(0));
 
@@ -380,6 +376,7 @@ mod tests {
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
+    #[serial]
     fn checked_arithmetic_u64_overflow() {
         fn nanos_to_dur(total_nanos: u128) -> Duration {
             let nanos_per_sec = Duration::from_secs(1).as_nanos();
