@@ -141,10 +141,9 @@
 #![allow(clippy::must_use_candidate)]
 
 use crossbeam_utils::atomic::AtomicCell;
+use std::sync::OnceLock;
 use std::time::Duration;
 use std::{cell::RefCell, sync::Arc};
-
-use once_cell::sync::OnceCell;
 
 mod clocks;
 use self::clocks::{Counter, Monotonic};
@@ -159,13 +158,13 @@ mod stats;
 use self::stats::Variance;
 
 // Global clock, used by `Instant::now`.
-static GLOBAL_CLOCK: OnceCell<Clock> = OnceCell::new();
+static GLOBAL_CLOCK: OnceLock<Clock> = OnceLock::new();
 
 // Global recent measurement, used by `Clock::recent` and `Instant::recent`.
 static GLOBAL_RECENT: AtomicCell<u64> = AtomicCell::new(0);
 
 // Global calibration, shared by all clocks.
-static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
+static GLOBAL_CALIBRATION: OnceLock<Calibration> = OnceLock::new();
 
 // Per-thread clock override, used by `quanta::with_clock`, `Instant::now`, and sometimes `Instant::recent`.
 thread_local! {
