@@ -110,6 +110,17 @@ jobs:
       run: curl https://wasmtime.dev/install.sh -sSf | bash
     - name: Run Tests
       run: cargo wasi test
+  check-emscripten:
+    name: Check wasm32-unknown-emscripten
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust Stable
+      run: rustup default stable
+    - name: Install wasm32-unknown-emscripten target
+      run: rustup target add wasm32-unknown-emscripten
+    - name: Check Emscripten target
+      run: cargo check --target wasm32-unknown-emscripten
   docs:
     runs-on: ubuntu-latest
     env:

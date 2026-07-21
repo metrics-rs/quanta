@@ -74,7 +74,8 @@
 //! `wasm32-unknown-unknown` target in browsers, `quanta` will use [window.performance.now] as a
 //! clock. This mean the accuracy is limited to milliseconds instead of the usual nanoseconds on
 //! other targets. When running within a WASI environment (target `wasm32-wasi`), the accuracy of
-//! the clock depends on the VM implementation.
+//! the clock depends on the VM implementation. On `wasm32-unknown-emscripten`, `quanta` uses
+//! Emscripten's POSIX-compatible monotonic clock.
 //!
 //! # TSC Support
 //!
