@@ -6,10 +6,7 @@ pub struct Monotonic {
 impl Monotonic {
     #[allow(clippy::cast_sign_loss)]
     pub fn now(self) -> u64 {
-        let mut ts = libc::timespec {
-            tv_sec: 0,
-            tv_nsec: 0,
-        };
+        let mut ts = libc::timespec::default();
         unsafe {
             libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut ts);
         }
