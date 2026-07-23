@@ -141,14 +141,20 @@
 #![allow(clippy::must_use_candidate)]
 
 use crossbeam_utils::atomic::AtomicCell;
+
 use std::sync::OnceLock;
+#[cfg(feature = "mock")]
+use std::cell::RefCell;
+#[cfg(feature = "mock")]
+use std::sync::Arc;
 use std::time::Duration;
-use std::{cell::RefCell, sync::Arc};
 
 mod clocks;
 use self::clocks::{Counter, Monotonic};
 mod detection;
+#[cfg(feature = "mock")]
 mod mock;
+#[cfg(feature = "mock")]
 pub use self::mock::{IntoNanoseconds, Mock};
 mod instant;
 pub use self::instant::Instant;
@@ -167,8 +173,9 @@ static GLOBAL_RECENT: AtomicCell<u64> = AtomicCell::new(0);
 static GLOBAL_CALIBRATION: OnceLock<Calibration> = OnceLock::new();
 
 // Per-thread clock override, used by `quanta::with_clock`, `Instant::now`, and sometimes `Instant::recent`.
+#[cfg(feature = "mock")]
 thread_local! {
-    static CLOCK_OVERRIDE: RefCell<Option<Clock>> = RefCell::new(None);
+    static CLOCK_OVERRIDE: RefCell<Option<Clock>> = const { RefCell::new(None) };
 }
 
 // Run 500 rounds of calibration before we start actually seeing what the numbers look like.
@@ -184,6 +191,7 @@ const MAXIMUM_CAL_TIME_NS: u64 = 200 * 1000 * 1000;
 enum ClockType {
     Monotonic(Monotonic),
     Counter(Monotonic, Counter, Calibration),
+    #[cfg(feature = "mock")]
     Mock(Arc<Mock>),
 }
 
@@ -333,6 +341,7 @@ impl Clock {
     ///
     /// Returns a [`Clock`] instance and a handle to the underlying [`Mock`] source so that the
     /// caller can control the passage of time.
+    #[cfg(feature = "mock")]
     pub fn mock() -> (Clock, Arc<Mock>) {
         let mock = Arc::new(Mock::new());
         let clock = Clock {
@@ -352,6 +361,7 @@ impl Clock {
         match &self.inner {
             ClockType::Monotonic(monotonic) => Instant(monotonic.now()),
             ClockType::Counter(_, counter, _) => self.scaled(counter.now()),
+            #[cfg(feature = "mock")]
             ClockType::Mock(mock) => Instant(mock.value()),
         }
     }
@@ -368,6 +378,7 @@ impl Clock {
         match &self.inner {
             ClockType::Monotonic(monotonic) => monotonic.now(),
             ClockType::Counter(_, counter, _) => counter.now(),
+            #[cfg(feature = "mock")]
             ClockType::Mock(mock) => mock.value(),
         }
     }
@@ -445,6 +456,7 @@ impl Clock {
     /// Returns an [`Instant`].
     pub fn recent(&self) -> Instant {
         match &self.inner {
+            #[cfg(feature = "mock")]
             ClockType::Mock(mock) => Instant(mock.value()),
             _ => Instant(GLOBAL_RECENT.load()),
         }
@@ -473,6 +485,7 @@ impl Default for Clock {
 impl Clone for ClockType {
     fn clone(&self) -> Self {
         match self {
+            #[cfg(feature = "mock")]
             ClockType::Mock(mock) => ClockType::Mock(mock.clone()),
             ClockType::Monotonic(monotonic) => ClockType::Monotonic(*monotonic),
             ClockType::Counter(monotonic, counter, calibration) => {
@@ -486,12 +499,20 @@ impl Clone for ClockType {
 ///
 /// This will only affect calls made against [`Instant`].  [`Clock`] is always self-contained.
 pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
-    CLOCK_OVERRIDE.with(|current| {
-        let old = current.replace(Some(clock.clone()));
-        let result = f();
-        current.replace(old);
-        result
-    })
+    #[cfg(feature = "mock")]
+    {
+        CLOCK_OVERRIDE.with(|current| {
+            let old = current.replace(Some(clock.clone()));
+            let result = f();
+            current.replace(old);
+            result
+        })
+    }
+    #[cfg(not(feature = "mock"))]
+    {
+        let _ = clock;
+        f()
+    }
 }
 
 /// Sets the global recent time.
@@ -506,11 +527,11 @@ pub fn set_recent(instant: Instant) {
 
 #[inline]
 pub(crate) fn get_now() -> Instant {
+    #[cfg(feature = "mock")]
     if let Some(instant) = CLOCK_OVERRIDE.with(|clock| clock.borrow().as_ref().map(Clock::now)) {
-        instant
-    } else {
-        GLOBAL_CLOCK.get_or_init(Clock::new).now()
+        return instant;
     }
+    GLOBAL_CLOCK.get_or_init(Clock::new).now()
 }
 
 #[inline]
@@ -553,6 +574,7 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     use std::time::{Duration, Instant};
 
+    #[cfg(feature = "mock")]
     #[test]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),

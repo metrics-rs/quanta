@@ -280,6 +280,7 @@ impl Into<prost_types::Timestamp> for Instant {
 #[cfg(test)]
 mod tests {
     use super::Instant;
+    #[cfg(feature = "mock")]
     use crate::{with_clock, Clock};
     use serial_test::serial;
     use std::thread;
@@ -338,6 +339,7 @@ mod tests {
         assert_eq!(t2, t3);
     }
 
+    #[cfg(feature = "mock")]
     #[test]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),

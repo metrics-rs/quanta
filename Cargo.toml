@@ -32,8 +32,9 @@ name = "contention"
 harness = false
 
 [features]
-default = ["flaky_tests"]
+default = ["flaky_tests", "mock"]
 flaky_tests = []
+mock = []
 prost = ["prost-types"]
 
 [dependencies]
