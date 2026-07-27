@@ -282,6 +282,7 @@ mod tests {
     use once_cell::sync::Lazy;
 
     use super::Instant;
+    #[cfg(feature = "mock")]
     use crate::{with_clock, Clock};
     use std::time::Duration;
     use std::{sync::Mutex, thread};
@@ -341,6 +342,7 @@ mod tests {
         assert_eq!(t2, t3);
     }
 
+    #[cfg(feature = "mock")]
     #[test]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
