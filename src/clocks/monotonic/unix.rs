@@ -1,3 +1,6 @@
+use std::mem;
+use std::time::Duration;
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Monotonic {
     _default: (),
@@ -35,4 +38,40 @@ impl Monotonic {
         // Until then, though, we're just gonna ignore the lint.
         ts.tv_sec as u64 * 1_000_000_000 + ts.tv_nsec as u64
     }
+}
+
+// std::time::Instant is represented as
+// struct Nanoseconds(u32);
+// 
+// struct Timespec {
+//     tv_sec: i64,
+//     tv_nsec: Nanoseconds,
+// }
+
+// struct Instant {
+//     t: Timespec,
+// }
+
+struct Nanoseconds(u32);
+
+struct Timespec {
+    tv_sec: i64,
+    tv_nsec: Nanoseconds,
+}
+
+pub(crate) fn to_std_instant(instant: u64) -> std::time::Instant {
+    let dur = Duration::from_nanos(instant);
+
+    unsafe {
+        mem::transmute(Timespec {
+            tv_sec: dur.as_secs() as i64,
+            tv_nsec: Nanoseconds(dur.subsec_nanos()),
+        })
+    }
+}
+
+pub(crate) fn from_std_instant(instant: std::time::Instant) -> u64 {
+    let ts: Timespec = unsafe { mem::transmute(instant) };
+
+    ts.tv_sec as u64 * 1_000_000_000 + ts.tv_nsec.0 as u64
 }
