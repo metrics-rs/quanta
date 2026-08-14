@@ -107,7 +107,9 @@ jobs:
     - name: Install cargo-wasi
       run: cargo install cargo-wasi
     - name: Install wasmtime
-      run: curl https://wasmtime.dev/install.sh -sSf | bash
+      uses: bytecodealliance/actions/wasmtime/setup@v1
+      with:
+        version: "47.0.3"
     - name: Run Tests
       run: cargo wasi test
   docs:
