@@ -10,7 +10,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust Nightly
       run: rustup default nightly
     - name: Check Formatting
@@ -18,7 +18,7 @@ jobs:
   feature-check:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust Stable
       run: rustup default stable
     - name: Install cargo-hack
@@ -33,7 +33,7 @@ jobs:
         rust_version: ['1.70.0', 'stable', 'nightly']
         os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
       run: rustup default ${{ matrix.rust_version }}
     - name: Run Tests
@@ -49,7 +49,7 @@ jobs:
           - arm-unknown-linux-gnueabi
           - armv7-unknown-linux-gnueabihf
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Ensure Rust up-to-date
       run: rustup default stable
     - name: Install Cross
@@ -65,7 +65,7 @@ jobs:
           - mips-unknown-linux-gnu
           - mipsel-unknown-linux-gnu
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Ensure Rust up-to-date
       run: rustup default nightly
     - name: Install Cross
@@ -82,7 +82,7 @@ jobs:
         rust_version: ['1.70.0', 'stable', 'nightly']
         os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
       run: rustup default ${{ matrix.rust_version }}
     - name: Install wasm32-unknown-unknown target
@@ -99,23 +99,36 @@ jobs:
         rust_version: ['1.70.0', 'stable', 'nightly']
         os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
       run: rustup default ${{ matrix.rust_version }}
-    - name: Install wasm32-wasi target
-      run: rustup target add wasm32-wasi
+    - name: Install wasm32-wasip1 target
+      run: rustup target add wasm32-wasip1
     - name: Install cargo-wasi
       run: cargo install cargo-wasi
     - name: Install wasmtime
-      run: curl https://wasmtime.dev/install.sh -sSf | bash
+      uses: bytecodealliance/actions/wasmtime/setup@v1
+      with:
+        version: "47.0.3"
     - name: Run Tests
       run: cargo wasi test
+  check-emscripten:
+    name: Check wasm32-unknown-emscripten
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Rust Stable
+      run: rustup default stable
+    - name: Install wasm32-unknown-emscripten target
+      run: rustup target add wasm32-unknown-emscripten
+    - name: Check Emscripten target
+      run: cargo check --target wasm32-unknown-emscripten
   docs:
     runs-on: ubuntu-latest
     env:
       RUSTDOCFLAGS: -Dwarnings
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust Nightly
       run: rustup default nightly
     - name: Check Docs
@@ -127,7 +140,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Rust Stable
       run: rustup default stable
     - name: Run Benchmarks
