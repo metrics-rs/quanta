@@ -143,11 +143,10 @@
 
 use crossbeam_utils::atomic::AtomicCell;
 
-use std::sync::OnceLock;
 #[cfg(feature = "mock")]
 use std::cell::RefCell;
 #[cfg(feature = "mock")]
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 mod clocks;
