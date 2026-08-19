@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         rust_version: ['1.70.0', 'stable', 'nightly']
-        os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
@@ -80,7 +80,7 @@ jobs:
     strategy:
       matrix:
         rust_version: ['1.70.0', 'stable', 'nightly']
-        os: [ubuntu-22.04, ubuntu-24.04, macOS-13, macOS-14, windows-2019, windows-2022]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
@@ -92,8 +92,8 @@ jobs:
     - name: Run Tests
       run: wasm-pack test --node
   test-wasi:
-    name: Test ${{ matrix.rust_version }}/ubuntu-24.04 (${{ matrix.target }})
-    runs-on: ubuntu-24.04
+    name: Test ${{ matrix.rust_version }}/ubuntu (${{ matrix.target }})
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         rust_version: ['1.70.0', 'stable', 'nightly']
@@ -139,7 +139,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Stable
