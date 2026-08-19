@@ -30,7 +30,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   support continue to work.
 - `CLOCK_OVERRIDE` thread local is now initialized with a `const` block.
   ([#117](https://github.com/metrics-rs/quanta/pull/117))
-- MSRV bumped to 1.71.
 
 ### Fixed
 

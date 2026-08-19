@@ -3,7 +3,7 @@ name = "quanta"
 version = "0.12.6"
 authors = ["Toby Lawrence <toby@nuclearfurnace.com>"]
 edition = "2021"
-rust-version = "1.71"
+rust-version = "1.70"
 
 license = "MIT"
 
