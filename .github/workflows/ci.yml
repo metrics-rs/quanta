@@ -92,7 +92,7 @@ jobs:
     - name: Run Tests
       run: wasm-pack test --node
   test-wasi:
-    name: Test ${{ matrix.rust_version }}/${{ matrix.os }} (wasm32-wasi)
+    name: Test ${{ matrix.rust_version }}/${{ matrix.os }} (wasm32-wasip1)
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -104,14 +104,14 @@ jobs:
       run: rustup default ${{ matrix.rust_version }}
     - name: Install wasm32-wasip1 target
       run: rustup target add wasm32-wasip1
-    - name: Install cargo-wasi
-      run: cargo install cargo-wasi
     - name: Install wasmtime
       uses: bytecodealliance/actions/wasmtime/setup@v1
       with:
         version: "47.0.3"
     - name: Run Tests
-      run: cargo wasi test
+      env:
+        CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime
+      run: cargo test --target wasm32-wasip1
   check-emscripten:
     name: Check wasm32-unknown-emscripten
     runs-on: ubuntu-latest
