@@ -170,9 +170,11 @@ impl Drop for Handle {
 #[cfg(test)]
 mod tests {
     use super::Upkeep;
+    use serial_test::serial;
     use std::time::Duration;
 
     #[test]
+    #[serial]
     #[cfg_attr(target_arch = "wasm32", ignore)] // WASM is single threaded
     fn test_spawning_second_upkeep() {
         let first = Upkeep::new(Duration::from_millis(250)).start();

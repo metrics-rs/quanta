@@ -279,17 +279,17 @@ impl Into<prost_types::Timestamp> for Instant {
 
 #[cfg(test)]
 mod tests {
-    use once_cell::sync::Lazy;
+    use std::thread;
+    use std::time::Duration;
+
+    use serial_test::serial;
 
     use super::Instant;
     #[cfg(feature = "mock")]
     use crate::{with_clock, Clock};
-    use std::time::Duration;
-    use std::{sync::Mutex, thread};
-
-    static RECENT_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         ignore = "WASM thread cannot sleep"
@@ -308,14 +308,15 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         ignore = "WASM thread cannot sleep"
     )]
     fn test_recent() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
-        // Ensures that the recent global value is zero so that the fallback logic can kick in.
+        // Preflight: disable caching of recent time by setting the value to zero.
+        //
+        // Ensure that after doing so, "recent" reads are simply tracking actual time.
         crate::set_recent(Instant(0));
 
         let t0 = Instant::recent();
@@ -335,6 +336,8 @@ mod tests {
             t1.0
         );
 
+        // Now we set the cached recent time which means we should get identical measurements
+        // in the absence of anything changing it.
         crate::set_recent(Instant(1));
         let t2 = Instant::recent();
         thread::sleep(Duration::from_millis(15));
@@ -344,13 +347,12 @@ mod tests {
 
     #[cfg(feature = "mock")]
     #[test]
+    #[serial]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
     )]
     fn test_mocking() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
         // Ensures that the recent global value is zero so that the fallback logic can kick in.
         crate::set_recent(Instant(0));
 

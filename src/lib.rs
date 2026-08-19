@@ -141,12 +141,12 @@
 #![deny(clippy::all)]
 #![allow(clippy::must_use_candidate)]
 
-use crossbeam_utils::atomic::AtomicCell;
-use once_cell::sync::OnceCell;
+use portable_atomic::AtomicU64;
 #[cfg(feature = "mock")]
 use std::cell::RefCell;
 #[cfg(feature = "mock")]
 use std::sync::Arc;
+use std::sync::{atomic::Ordering, OnceLock};
 use std::time::Duration;
 
 mod clocks;
@@ -164,13 +164,13 @@ mod stats;
 use self::stats::Variance;
 
 // Global clock, used by `Instant::now`.
-static GLOBAL_CLOCK: OnceCell<Clock> = OnceCell::new();
+static GLOBAL_CLOCK: OnceLock<Clock> = OnceLock::new();
 
 // Global recent measurement, used by `Clock::recent` and `Instant::recent`.
-static GLOBAL_RECENT: AtomicCell<u64> = AtomicCell::new(0);
+static GLOBAL_RECENT: AtomicU64 = AtomicU64::new(0);
 
 // Global calibration, shared by all clocks.
-static GLOBAL_CALIBRATION: OnceCell<Calibration> = OnceCell::new();
+static GLOBAL_CALIBRATION: OnceLock<Calibration> = OnceLock::new();
 
 // Per-thread clock override, used by `quanta::with_clock`, `Instant::now`, and sometimes `Instant::recent`.
 #[cfg(feature = "mock")]
@@ -458,7 +458,7 @@ impl Clock {
         match &self.inner {
             #[cfg(feature = "mock")]
             ClockType::Mock(mock) => Instant(mock.value()),
-            _ => Instant(GLOBAL_RECENT.load()),
+            _ => Instant(GLOBAL_RECENT.load(Ordering::Acquire)),
         }
     }
 
@@ -522,7 +522,7 @@ pub fn with_clock<T>(clock: &Clock, f: impl FnOnce() -> T) -> T {
 /// recent time is updated.  For example, programs using an asynchronous runtime may prefer to
 /// schedule a task that does the updating, avoiding an extra thread.
 pub fn set_recent(instant: Instant) {
-    GLOBAL_RECENT.store(instant.0);
+    GLOBAL_RECENT.store(instant.0, Ordering::Release);
 }
 
 #[inline]
@@ -542,7 +542,7 @@ pub(crate) fn get_recent() -> Instant {
     //
     // Given that global recent time shouldn't ever be getting _actually_ updated in tests, this
     // should be a reasonable trade-off.
-    let recent = GLOBAL_RECENT.load();
+    let recent = GLOBAL_RECENT.load(Ordering::Acquire);
     if recent == 0 {
         get_now()
     } else {
@@ -564,6 +564,8 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 mod tests {
     use super::Clock;
 
+    use serial_test::parallel;
+
     #[cfg(not(target_arch = "wasm32"))]
     use super::{Counter, Monotonic};
 
@@ -575,6 +577,7 @@ mod tests {
 
     #[cfg(feature = "mock")]
     #[test]
+    #[parallel]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -587,6 +590,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -597,6 +601,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -607,6 +612,7 @@ mod tests {
     }
 
     #[test]
+    #[parallel]
     #[cfg_attr(
         all(target_arch = "wasm32", target_os = "unknown"),
         wasm_bindgen_test::wasm_bindgen_test
@@ -620,6 +626,7 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
+    #[parallel]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     fn test_reference_source_calibration() {
         let mut clock = Clock::new();
@@ -703,6 +710,7 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[test]
+    #[parallel]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
     fn measure_source_reference_self_timing() {
         let source = Counter::default();
