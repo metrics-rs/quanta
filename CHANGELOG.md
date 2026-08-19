@@ -8,6 +8,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+
+- Support for the `wasm32-wasip2` target, alongside continued support for `wasm32-wasip1`.
+- Support for the monotonic clock on Emscripten targets, which use Emscripten's POSIX-compatible monotonic clock.
+  ([#120](https://github.com/metrics-rs/quanta/pull/120))
+- Documentation on System Counter support for AArch64 platforms.
+
+### Changed
+
+- **Breaking change:** mock support -- `Mock`, `IntoNanoseconds`, and `Clock::mock` -- is now gated behind the new
+  `mock` feature flag. The feature is part of the default feature set, so builds using default features are unaffected,
+  but builds using `default-features = false` must now enable `mock` explicitly. Additionally, `with_clock` becomes a
+  no-op when the feature is disabled. ([#118](https://github.com/metrics-rs/quanta/pull/118))
+- **Breaking change:** the legacy `wasm32-wasi` target is no longer supported, as WASI support is now selected based on
+  `target_env` being either `p1` or `p2`. Use `wasm32-wasip1` instead.
+- Switched from `winapi` to `windows-sys` for querying the monotonic clock on Windows.
+  ([#114](https://github.com/metrics-rs/quanta/pull/114))
+- Replaced `once_cell` and `crossbeam-utils` with `std::sync::OnceLock` and `portable-atomic`, dropping two dependencies
+  in the process. `portable-atomic` is used with its `fallback` feature so that platforms without native 64-bit atomic
+  support continue to work.
+- `CLOCK_OVERRIDE` thread local is now initialized with a `const` block.
+  ([#117](https://github.com/metrics-rs/quanta/pull/117))
+- MSRV bumped to 1.71.
+
+### Fixed
+
+- Fixed compilation on 32-bit platforms, where `timespec` could no longer be constructed with struct literal syntax due
+  to private fields. ([#121](https://github.com/metrics-rs/quanta/pull/121))
+
 ## [0.12.6] - 2025-06-10
 
 ### Fixed
