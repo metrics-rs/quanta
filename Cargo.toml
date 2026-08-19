@@ -49,7 +49,7 @@ raw-cpuid = "11.0"
 raw-cpuid = "11.0"
 
 [target.'cfg(any(target_os = "emscripten", not(any(target_os = "windows", target_arch = "wasm32"))))'.dependencies]
-libc = "0.2"
+libc = "0.2.183"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_System_Performance"] }
