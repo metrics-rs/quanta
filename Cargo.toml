@@ -39,7 +39,7 @@ prost = ["prost-types"]
 
 [dependencies]
 prost-types = { version = "0.11", default-features = false, optional = true }
-portable-atomic = { version = "1", default-features = false }
+portable-atomic = { version = "1", default-features = false, features = ["fallback"] }
 
 [target.'cfg(target_arch = "x86")'.dependencies]
 raw-cpuid = "11.0"
