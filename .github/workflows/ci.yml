@@ -12,32 +12,32 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Nightly
-      run: rustup default nightly
+      run: rustup toolchain install nightly --component rustfmt
     - name: Check Formatting
-      run: cargo fmt --all -- --check
+      run: cargo +nightly fmt --all -- --check
   feature-check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Stable
-      run: rustup default stable
+      run: rustup toolchain install stable
     - name: Install cargo-hack
       run: cargo install cargo-hack
     - name: Check Feature Matrix
-      run: cargo hack build --all --all-targets --feature-powerset
+      run: cargo +stable hack build --all --all-targets --feature-powerset
   test:
     name: Test ${{ matrix.rust_version }}/${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_version: ['1.70.0', 'stable', 'nightly']
+        rust_version: ['1.87.0', 'stable', 'nightly']
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
-      run: rustup default ${{ matrix.rust_version }}
+      run: rustup toolchain install ${{ matrix.rust_version }}
     - name: Run Tests
-      run: cargo test --no-default-features --features=prost -- --test-threads=1
+      run: cargo +${{ matrix.rust_version }} test --no-default-features --features=prost
   cross-test:
     name: Test ${{ matrix.target }}
     runs-on: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Ensure Rust up-to-date
-      run: rustup default stable
+      run: rustup toolchain install stable
     - name: Install Cross
       run: cargo install cross --git https://github.com/cross-rs/cross
     - name: Run Tests
@@ -67,7 +67,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Ensure Rust up-to-date
-      run: rustup default nightly
+      run: rustup toolchain install nightly
     - name: Install Cross
       run: cargo install cross --git https://github.com/cross-rs/cross
     - name: Run Tests
@@ -79,31 +79,33 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust_version: ['1.70.0', 'stable', 'nightly']
+        rust_version: ['1.87.0', 'stable', 'nightly']
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
-      run: rustup default ${{ matrix.rust_version }}
+      run: rustup toolchain install ${{ matrix.rust_version }}
     - name: Install wasm32-unknown-unknown target
-      run: rustup target add wasm32-unknown-unknown
+      run: rustup target add --toolchain ${{ matrix.rust_version }} wasm32-unknown-unknown
     - name: Install wasm-pack
       run: cargo install wasm-pack
     - name: Run Tests
+      env:
+        RUSTUP_TOOLCHAIN: ${{ matrix.rust_version }}
       run: wasm-pack test --node
   test-wasi:
     name: Test ${{ matrix.rust_version }}/ubuntu (${{ matrix.target }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust_version: ['1.70.0', 'stable', 'nightly']
+        rust_version: ['1.87.0', 'stable', 'nightly']
         target: [wasm32-wasip1, wasm32-wasip2]
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust ${{ matrix.rust_version }}
-      run: rustup default ${{ matrix.rust_version }}
+      run: rustup toolchain install ${{ matrix.rust_version }}
     - name: Install ${{ matrix.target }} target
-      run: rustup target add ${{ matrix.target }}
+      run: rustup target add --toolchain ${{ matrix.rust_version }} ${{ matrix.target }}
     - name: Install wasmtime
       uses: bytecodealliance/actions/wasmtime/setup@v1
       with:
@@ -112,18 +114,18 @@ jobs:
       env:
         CARGO_TARGET_WASM32_WASIP1_RUNNER: wasmtime
         CARGO_TARGET_WASM32_WASIP2_RUNNER: wasmtime
-      run: cargo test --target ${{ matrix.target }}
+      run: cargo +${{ matrix.rust_version }} test --target ${{ matrix.target }}
   check-emscripten:
     name: Check wasm32-unknown-emscripten
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Stable
-      run: rustup default stable
+      run: rustup toolchain install stable
     - name: Install wasm32-unknown-emscripten target
-      run: rustup target add wasm32-unknown-emscripten
+      run: rustup target add --toolchain stable wasm32-unknown-emscripten
     - name: Check Emscripten target
-      run: cargo check --target wasm32-unknown-emscripten
+      run: cargo +stable check --target wasm32-unknown-emscripten
   docs:
     runs-on: ubuntu-latest
     env:
@@ -131,9 +133,9 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Nightly
-      run: rustup default nightly
+      run: rustup toolchain install nightly
     - name: Check Docs
-      run: cargo doc --all-features --workspace --no-deps
+      run: cargo +nightly doc --all-features --workspace --no-deps
   bench:
     name: Bench ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -143,6 +145,6 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Install Rust Stable
-      run: rustup default stable
+      run: rustup toolchain install stable
     - name: Run Benchmarks
-      run: cargo bench -- --output-format bencher
+      run: cargo +stable bench -- --output-format bencher
