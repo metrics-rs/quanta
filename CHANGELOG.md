@@ -8,6 +8,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.13.0] - 2026-09-27
+
 ### Added
 
 - Support for the `wasm32-wasip2` target, alongside continued support for `wasm32-wasip1`.
@@ -300,7 +302,8 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.6...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/metrics-rs/quanta/compare/v0.12.6...v0.13.0
 [0.12.6]: https://github.com/metrics-rs/quanta/compare/v0.12.5...v0.12.6
 [0.12.5]: https://github.com/metrics-rs/quanta/compare/v0.12.4...v0.12.5
 [0.12.4]: https://github.com/metrics-rs/quanta/compare/v0.12.3...v0.12.4
