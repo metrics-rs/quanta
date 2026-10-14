@@ -64,7 +64,7 @@ wasip1 = "1"
 wasip2 = "1"
 
 [dev-dependencies]
-average = "0.14"
+average = "0.15"
 criterion = "=0.3.3"
 serial_test = "3"
 
