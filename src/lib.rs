@@ -97,7 +97,10 @@
 //! - AMD Phenom and newer
 //!
 //! Ultimately, `quanta` will query CPUID information to determine if the processor has the required features to use the
-//! TSC.
+//! TSC. On Linux, `quanta` also requires the kernel to list `tsc` in `available_clocksource`, falling back to the OS
+//! clock if it is missing or the file can't be read. The kernel stops listing `tsc` once it marks the TSC unstable, for
+//! example when it is unsynchronized across CPUs, except when neither nohz nor high-resolution timers are active, or
+//! when the TSC is marked reliable.
 //!
 //! ## System Counter (AArch64)
 //!
